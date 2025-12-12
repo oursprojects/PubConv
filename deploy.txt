@@ -82,3 +82,39 @@ QUICK DEPLOYMENT CHECKLIST
 [ ] Environment variables added to hosting project settings.
 [ ] Build command set to `npm run build` or `next build`.
 [ ] Install command set to `npm install`.
+
+PART 3: SETTING UP GOOGLE RECAPTCHA
+-----------------------------------
+To protect your forms from spam, you need to set up Google reCAPTCHA v3.
+
+1. Go to the Admin Console:
+   https://www.google.com/recaptcha/admin
+
+2. Create a New Site (+ button):
+   - Label: PubConv (or any name you recognize)
+   - reCAPTCHA type: **Score based (v3)**
+   - Domains: 
+     - Add `localhost` (for local development)
+     - Add `127.0.0.1` (also for local)
+     - Add your production domain later (e.g., `pubconv.vercel.app`)
+
+3. Owners:
+   - Your email should already be there. Add others if needed.
+
+4. Submit:
+   - Accept the Terms of Service.
+   - Click "Submit".
+
+5. Get Your Keys:
+   - You will see a **Site Key** and a **Secret Key**.
+   - Copy these keys.
+
+6. Add to Environment Variables:
+   - In your `.env.local` file (development):
+     NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key_here
+     RECAPTCHA_SECRET_KEY=your_secret_key_here
+   
+   - In your Production Deployment (e.g., Vercel):
+     Add the same keys to the Project Settings > Environment Variables.
+
+IMPORTANT: Ensure you selected **v3**. Version 2 keys will NOT work with this implementation.
