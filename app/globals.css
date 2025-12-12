@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 90%;
+    /* Light Grey #E6E6E6 */
+    --foreground: 0 0% 25%;
+    /* Charcoal #3F3F3F */
+
+    --card: 0 0% 100%;
+    /* White Card for contrast on light grey bg */
+    --card-foreground: 0 0% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 25%;
+
+    --primary: 0 0% 25%;
+    /* Charcoal */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 85%;
+    --secondary-foreground: 0 0% 25%;
+
+    --muted: 0 0% 80%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 85%;
+    --accent-foreground: 0 0% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 0 0% 75%;
+    --input: 0 0% 75%;
+    --ring: 0 0% 25%;
+
+    --radius: 1.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 20%;
+    /* Darker Charcoal #333333 */
+    --foreground: 0 0% 100%;
+    /* White */
+
+    --card: 0 0% 25%;
+    /* Previous background (#3F3F3F - 0 0% 25%) as Card */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 25%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 25%;
+
+    --secondary: 0 0% 35%;
+    /* Darker secondary */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 35%;
+    --muted-foreground: 0 0% 80%;
+
+    --accent: 0 0% 35%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 0 0% 41%;
+    --input: 0 0% 41%;
+    --ring: 0 0% 80%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  * {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
