@@ -463,17 +463,31 @@ export function useChat() {
     const toggleReaction = async (messageId: string, emoji: string) => {
         if (!userId) return;
 
-        // Optimistic Update
+        // Optimistic Update - one reaction per user per message
         setMessages(current => current.map(msg => {
             if (msg.id !== messageId) return msg;
 
             const currentReactions = { ...msg.reactions };
-            const userList = [...(currentReactions[emoji] || [])];
 
+            // First, remove user from ALL other emojis
+            for (const key of Object.keys(currentReactions)) {
+                if (key !== emoji && currentReactions[key]) {
+                    currentReactions[key] = currentReactions[key].filter((id: string) => id !== userId);
+                    if (currentReactions[key].length === 0) {
+                        delete currentReactions[key];
+                    }
+                }
+            }
+
+            // Now toggle the selected emoji
+            const userList = [...(currentReactions[emoji] || [])];
             const userIndex = userList.indexOf(userId);
+
             if (userIndex >= 0) {
+                // User already has this reaction - remove it
                 userList.splice(userIndex, 1);
             } else {
+                // Add user to this reaction
                 userList.push(userId);
             }
 

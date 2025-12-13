@@ -35,11 +35,10 @@ export function LoginForm() {
         toast.loading("Logging in...");
         const res = await login(formData);
         toast.dismiss();
+        // If we get here, login returned an error (success redirects server-side)
         if (res?.error) {
             setError(res.error);
             toast.error(res.error);
-        } else {
-            toast.success("Welcome back!");
         }
     }
 

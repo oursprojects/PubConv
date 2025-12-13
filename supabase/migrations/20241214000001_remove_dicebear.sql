@@ -5,11 +5,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $function$
 BEGIN
-  INSERT INTO public.profiles (id, username, display_name, avatar_url)
+  INSERT INTO public.profiles (id, username, avatar_url)
   VALUES (
     new.id,
     new.raw_user_meta_data->>'username',
-    new.raw_user_meta_data->>'display_name',
     NULL -- Explicitly set avatar_url to NULL to force InitialsAvatar
   );
   RETURN new;

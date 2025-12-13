@@ -46,19 +46,13 @@ export function MaintenanceListener() {
     }, [supabase]);
 
     // Redirect logic using refs to get current values
+
     const handleRedirect = useCallback((isMaintenance: boolean) => {
         const currentPath = pathnameRef.current;
         const currentIsAdmin = isAdminRef.current;
 
-        console.log('[MaintenanceListener] handleRedirect called:', {
-            isMaintenance,
-            currentPath,
-            currentIsAdmin
-        });
-
         // Allow admins to stay on any page
         if (currentIsAdmin) {
-            console.log('[MaintenanceListener] Admin user, skipping redirect');
             return;
         }
 
@@ -67,12 +61,10 @@ export function MaintenanceListener() {
 
         // If maintenance is ON and NOT on an exempt page -> Redirect to /maintenance
         if (isMaintenance && !isExemptPage) {
-            console.log('[MaintenanceListener] Redirecting to /maintenance');
             router.push('/maintenance');
         }
         // If maintenance is OFF and ON maintenance page -> Redirect to home
         else if (!isMaintenance && currentPath === '/maintenance') {
-            console.log('[MaintenanceListener] Maintenance off, redirecting to /');
             router.push('/');
         }
     }, [router]);
@@ -90,7 +82,7 @@ export function MaintenanceListener() {
                 .single();
 
             const isMaintenance = data?.value === true || data?.value === 'true';
-            console.log('[MaintenanceListener] Initial check:', { isMaintenance });
+
             handleRedirect(isMaintenance);
         };
         checkMaintenance();
@@ -107,7 +99,7 @@ export function MaintenanceListener() {
                     filter: 'key=eq.maintenance_mode'
                 },
                 (payload: RealtimePostgresChangesPayload<any>) => {
-                    console.log("[MaintenanceListener] DB Config updated:", payload.new);
+
                     const isMaintenance = payload.new.value === true || payload.new.value === 'true';
                     handleRedirect(isMaintenance);
 
@@ -119,7 +111,7 @@ export function MaintenanceListener() {
                 }
             )
             .subscribe((status: string) => {
-                console.log('[MaintenanceListener] DB channel status:', status);
+
             });
 
         // 3. Broadcast listener for real-time admin broadcasts (must match admin channel name)
@@ -129,7 +121,7 @@ export function MaintenanceListener() {
 
         broadcastChannel
             .on('broadcast', { event: 'maintenance_mode' }, (payload: { payload: { enabled: boolean } }) => {
-                console.log('[MaintenanceListener] Broadcast received:', payload);
+
                 const isMaintenance = payload.payload?.enabled;
                 handleRedirect(isMaintenance);
 
@@ -140,7 +132,7 @@ export function MaintenanceListener() {
                 }
             })
             .subscribe((status: string) => {
-                console.log('[MaintenanceListener] Broadcast channel status:', status);
+
             });
 
         return () => {

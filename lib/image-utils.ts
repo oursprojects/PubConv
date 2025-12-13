@@ -2,7 +2,7 @@
  * Resizes an image file to a specified maximum dimension using HTML Canvas.
  * Returns a Blob of the resized image in WebP format.
  */
-export async function resizeImage(file: File, maxDimension: number = 200, quality: number = 0.8): Promise<Blob> {
+export async function resizeImage(file: File, maxDimension: number = 200, quality: number = 0.6): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -55,7 +55,7 @@ export async function resizeImage(file: File, maxDimension: number = 200, qualit
     });
 }
 
-export async function cropImage(imageSrc: string, pixelCrop: { x: number, y: number, width: number, height: number }, quality: number = 0.8): Promise<Blob> {
+export async function cropImage(imageSrc: string, pixelCrop: { x: number, y: number, width: number, height: number }, quality: number = 0.6): Promise<Blob> {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');

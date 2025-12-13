@@ -16,6 +16,7 @@ export default function FeedbackPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
+    const [messageLength, setMessageLength] = useState(0);
     const supabase = createClient();
 
     useEffect(() => {
@@ -77,12 +78,12 @@ export default function FeedbackPage() {
 
     if (submitted) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Card className="w-full max-w-md text-center border-0 bg-muted/30 animate-in fade-in-0 zoom-in-95 duration-300">
-                    <CardContent className="pt-10 pb-10">
-                        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                        <h2 className="text-2xl font-semibold mb-2">Thank You!</h2>
-                        <p className="text-muted-foreground">
+            <div className="flex items-center justify-center min-h-[60vh] px-4">
+                <Card className="w-full max-w-sm text-center border-0 bg-muted/30 animate-in fade-in-0 zoom-in-95 duration-300">
+                    <CardContent className="pt-8 pb-8">
+                        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                        <h2 className="text-xl font-semibold mb-2">Thank You!</h2>
+                        <p className="text-sm text-muted-foreground">
                             Your feedback has been received. We appreciate your input!
                         </p>
                     </CardContent>
@@ -109,16 +110,24 @@ export default function FeedbackPage() {
                                 name="subject"
                                 placeholder="What's this about?"
                                 required
+                                maxLength={50}
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="message">Message</Label>
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="message">Message</Label>
+                                <span className={`text-[10px] ${messageLength >= 180 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                                    {messageLength}/200
+                                </span>
+                            </div>
                             <Textarea
                                 id="message"
                                 name="message"
                                 placeholder="Tell us more..."
                                 rows={5}
                                 required
+                                maxLength={200}
+                                onChange={(e) => setMessageLength(e.target.value.length)}
                             />
                         </div>
 

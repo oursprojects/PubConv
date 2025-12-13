@@ -11,7 +11,7 @@ export default function TermsPage() {
                         <Scale className="h-6 w-6 text-primary" />
                     </div>
                     <h1 className="text-xl font-bold mb-1">Terms & Conditions</h1>
-                    <p className="text-xs text-muted-foreground">Last updated: December 2024</p>
+                    <p className="text-xs text-muted-foreground">Last updated: December 2025</p>
                 </div>
 
                 <div className="space-y-3">

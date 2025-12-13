@@ -265,6 +265,16 @@ export function ChatInterface() {
                     ref={messagesParent}
                     className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth bg-background"
                 >
+                    {/* System Notice - Always visible at top */}
+                    <div className="flex justify-center mb-4">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
+                            <Info className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <p className="text-xs text-muted-foreground">
+                                Be kind and respectful to everyone. Enjoy the conversation!
+                            </p>
+                        </div>
+                    </div>
+
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
                             <p>No messages yet. Say hello!</p>
@@ -301,15 +311,60 @@ export function ChatInterface() {
                                     </div>
                                 )}
 
-                                {/* Message Bubble with reactions */}
-                                <div className="relative mb-5">
+                                {/* Message Bubble with reactions - Messenger style */}
+                                <div className="relative group/msg mb-4">
+                                    {/* Reply & React buttons - appear beside the bubble on hover */}
                                     <div className={cn(
-                                        "px-3 py-1.5 text-sm rounded-lg relative group/bubble border shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10",
+                                        "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5 z-20",
+                                        msg.user_id === userId ? "right-full mr-1 flex-row-reverse" : "left-full ml-1"
+                                    )}>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 rounded-full bg-background/80 border shadow-sm hover:bg-muted"
+                                            onClick={() => setReplyingTo(msg)}
+                                            title="Reply"
+                                        >
+                                            <Reply className="h-3 w-3 text-muted-foreground" />
+                                        </Button>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 rounded-full bg-background/80 border shadow-sm hover:bg-muted"
+                                                    title="Add Reaction"
+                                                >
+                                                    <Smile className="h-3 w-3 text-muted-foreground" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-1" align={msg.user_id === userId ? "end" : "start"}>
+                                                <div className="flex gap-1">
+                                                    {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
+                                                        <button
+                                                            key={emoji}
+                                                            className="p-2 hover:bg-accent rounded text-lg transition-transform hover:scale-110"
+                                                            onClick={() => toggleReaction(msg.id, emoji)}
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+
+                                    {/* Message Bubble */}
+                                    <div className={cn(
+                                        "px-3 py-1.5 text-sm rounded-2xl relative border-2 shadow-sm min-w-[80px]",
                                         msg.user_id === userId
-                                            ? "bg-primary text-primary-foreground border-primary/20"
+                                            ? "bg-primary text-primary-foreground border-primary/30"
                                             : "bg-muted text-foreground border-border"
                                     )}>
-                                        <p className="whitespace-pre-wrap break-all">
+                                        <p className={cn(
+                                            "whitespace-pre-wrap break-all",
+                                            msg.user_id === userId && "text-right"
+                                        )}>
                                             {msg.content.split(/(@\w+)/g).map((part, index) => {
                                                 if (part.startsWith('@')) {
                                                     const mentionedName = part.slice(1);
@@ -333,76 +388,44 @@ export function ChatInterface() {
                                                 return part;
                                             })}
                                         </p>
-                                    </div>
 
-                                    {/* Reply & React buttons - positioned below the bubble, visible on hover */}
-                                    <div className={cn(
-                                        "absolute top-full mt-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20",
-                                        msg.user_id === userId ? "right-1" : "left-1"
-                                    )}>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5 rounded-full bg-background border shadow-sm hover:bg-muted"
-                                            onClick={() => setReplyingTo(msg)}
-                                            title="Reply"
-                                        >
-                                            <Reply className="h-3 w-3 text-muted-foreground" />
-                                        </Button>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-5 w-5 rounded-full bg-background border shadow-sm hover:bg-muted"
-                                                    title="Add Reaction"
-                                                >
-                                                    <Smile className="h-3 w-3 text-muted-foreground" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-1" align={msg.user_id === userId ? "end" : "start"}>
-                                                <div className="flex gap-1">
-                                                    {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
-                                                        <button
-                                                            key={emoji}
-                                                            className="p-2 hover:bg-accent rounded text-lg transition-transform hover:scale-110"
-                                                            onClick={() => toggleReaction(msg.id, emoji)}
-                                                        >
-                                                            {emoji}
-                                                        </button>
-                                                    ))}
+                                        {/* Reactions Display - stacked emojis like Messenger */}
+                                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
+                                            const totalCount = Object.values(msg.reactions).reduce((sum, users) => sum + (users?.length || 0), 0);
+                                            const hasUserReacted = Object.values(msg.reactions).some(users => userId && users?.includes(userId));
+                                            const reactionEntries = Object.entries(msg.reactions).filter(([, users]) => users && users.length > 0);
+
+                                            return (
+                                                <div className={cn(
+                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-full border shadow-sm z-10",
+                                                    hasUserReacted
+                                                        ? "bg-background border-primary/40"
+                                                        : "bg-background border-border",
+                                                    msg.user_id === userId ? "left-0" : "right-0"
+                                                )}>
+                                                    <div className="flex items-center">
+                                                        {reactionEntries.map(([emoji, users], index) => (
+                                                            <button
+                                                                key={emoji}
+                                                                onClick={() => toggleReaction(msg.id, emoji)}
+                                                                className={cn(
+                                                                    "text-[11px] hover:scale-110 transition-transform",
+                                                                    index > 0 && "-ml-1"
+                                                                )}
+                                                                style={{ zIndex: reactionEntries.length - index }}
+                                                                title={`${users.length} reaction${users.length > 1 ? 's' : ''}`}
+                                                            >
+                                                                {emoji}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {totalCount >= 2 && (
+                                                        <span className="text-[9px] text-muted-foreground font-medium ml-0.5">{totalCount}</span>
+                                                    )}
                                                 </div>
-                                            </PopoverContent>
-                                        </Popover>
+                                            );
+                                        })()}
                                     </div>
-
-                                    {/* Reactions Display - positioned below the bubble */}
-                                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                                        <div className={cn(
-                                            "absolute top-full mt-1 flex gap-0.5 flex-wrap z-10",
-                                            msg.user_id === userId ? "left-1" : "right-1"
-                                        )}>
-                                            {Object.entries(msg.reactions).map(([emoji, users]) => {
-                                                if (!users || users.length === 0) return null;
-                                                const hasReacted = userId && users.includes(userId);
-                                                return (
-                                                    <button
-                                                        key={emoji}
-                                                        onClick={() => toggleReaction(msg.id, emoji)}
-                                                        className={cn(
-                                                            "flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full border shadow-sm transition-colors",
-                                                            hasReacted
-                                                                ? "bg-primary/20 border-primary/30 text-foreground font-medium"
-                                                                : "bg-background border-border text-muted-foreground hover:bg-muted"
-                                                        )}
-                                                    >
-                                                        <span>{emoji}</span>
-                                                        <span>{users.length}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Username • Date ... (same) */}
@@ -421,9 +444,9 @@ export function ChatInterface() {
                                 </div>
                             </div>
 
-                            {/* Admin Actions - self-start for long messages */}
+                            {/* Admin Actions - always on the right side */}
                             {role === 'admin' && (
-                                <div className="flex flex-col justify-start self-start pt-1 px-1 shrink-0">
+                                <div className="flex flex-col justify-start self-start pt-1 px-1 shrink-0 order-last">
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -508,9 +531,6 @@ export function ChatInterface() {
                                 maxLength={500}
                                 rows={1}
                             />
-                            <div className="absolute right-3 top-3 text-[10px] text-muted-foreground/50 pointer-events-none">
-                                {inputValue.length}/500
-                            </div>
                         </div>
 
                         <Button
@@ -531,6 +551,9 @@ export function ChatInterface() {
                             )}
                             <span className="sr-only">Send</span>
                         </Button>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60 text-right mt-1">
+                        {inputValue.length}/500
                     </div>
                 </div>
 

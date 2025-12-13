@@ -56,7 +56,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!shouldListen) return;
 
-        console.log('🔌 [Global] Connecting to realtime system...');
+
 
         const channel = supabase.channel('global_system', {
             config: {
@@ -66,28 +66,28 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
         channel
             .on('broadcast', { event: 'maintenance_mode' }, (payload: { payload: { enabled: boolean } }) => {
-                console.log('🔧 [Global] Maintenance mode broadcast:', payload);
+
                 if (payload.payload?.enabled && userRole !== 'admin') {
                     // Save current path to return after maintenance
                     router.push(`/maintenance?returnTo=${encodeURIComponent(pathname || '/chat')}`);
                 }
             })
             .on('broadcast', { event: 'user_banned' }, async (payload: { payload: { userId: string } }) => {
-                console.log('🚫 [Global] User banned broadcast:', payload);
+
                 if (payload.payload?.userId === userId) {
                     await supabase.auth.signOut();
                     router.push('/banned?reason=banned');
                 }
             })
             .on('broadcast', { event: 'user_deleted' }, async (payload: { payload: { userId: string } }) => {
-                console.log('❌ [Global] User deleted broadcast:', payload);
+
                 if (payload.payload?.userId === userId) {
                     await supabase.auth.signOut();
                     router.push('/banned?reason=deleted');
                 }
             })
             .subscribe((status: string) => {
-                console.log('Global system channel status:', status);
+
                 if (status === 'SUBSCRIBED') {
                     setIsConnected(true);
                 }
@@ -105,22 +105,22 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
                     filter: `id=eq.${userId}`
                 },
                 async (payload: any) => {
-                    console.log('📝 [Global] Profile update received:', payload);
+
                     const newProfile = payload.new as { is_banned?: boolean };
 
                     if (newProfile.is_banned) {
-                        console.log('🚫 [Global] User was banned via DB update');
+
                         await supabase.auth.signOut();
                         router.push('/banned?reason=banned');
                     }
                 }
             )
             .subscribe((status: string) => {
-                console.log('Database channel status:', status);
+
             });
 
         return () => {
-            console.log('🔌 [Global] Disconnecting from realtime system...');
+
             supabase.removeChannel(channel);
             supabase.removeChannel(dbChannel);
         };

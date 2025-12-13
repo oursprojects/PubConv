@@ -49,9 +49,23 @@ export async function signup(formData: FormData) {
     const username = formData.get('username') as string
     const recaptchaToken = formData.get('recaptchaToken') as string
 
-    // Validate password length
+    // Validate username (alphanumeric only, 3-12 characters)
+    const usernameRegex = /^[a-zA-Z0-9]{3,12}$/
+    if (!usernameRegex.test(username)) {
+        return { error: 'Username must be 3-12 characters and contain only letters and numbers.' }
+    }
+
+    // Validate password length (min 6, max 50)
     if (password.length < 6) {
         return { error: 'Password must be at least 6 characters long.' }
+    }
+    if (password.length > 50) {
+        return { error: 'Password must be 50 characters or less.' }
+    }
+
+    // Prevent password from being the same as username
+    if (password.toLowerCase() === username.toLowerCase()) {
+        return { error: 'Password cannot be the same as your username.' }
     }
 
     // Validate passwords match
@@ -84,7 +98,6 @@ export async function signup(formData: FormData) {
         options: {
             data: {
                 username: username,
-                display_name: username, // Use username as display_name
             }
         }
     })
@@ -98,8 +111,8 @@ export async function signup(formData: FormData) {
         redirect('/')
     }
 
-    // Check email fallback
-    return { message: 'Account created! Please check your email to confirm.' }
+    // No session means signup completed, redirect to login
+    redirect('/login')
 }
 
 export async function updatePassword(formData: FormData) {

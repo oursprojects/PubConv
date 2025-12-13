@@ -91,7 +91,7 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                     <ThemeToggle />
 
                     {user && (
-                        <Avatar className="h-8 w-8 ml-2 hidden md:block">
+                        <Avatar className="h-8 w-8 ml-2 shrink-0 ring-2 ring-border">
                             <AvatarImage src={avatarUrl} className="object-cover" />
                             <AvatarFallback>{initials}</AvatarFallback>
                         </Avatar>

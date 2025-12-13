@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button"; // Added Button import
 import { Label } from "@/components/ui/label";
 import { useState, useRef } from "react";
+import { Save, Upload, Loader2 } from "lucide-react";
 
 import { AnimatedButton } from "@/components/ui/animated-button";
 import {
@@ -25,12 +26,27 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-function SubmitButton() {
+function SubmitButton({ hasNewImage }: { hasNewImage?: boolean }) {
     const { pending } = useFormStatus();
 
     return (
-        <AnimatedButton type="submit" disabled={pending} className="w-full sm:w-auto">
-            {pending ? "Saving..." : "Save Changes"}
+        <AnimatedButton type="submit" disabled={pending} className="w-full sm:w-auto gap-2">
+            {pending ? (
+                <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {hasNewImage ? "Uploading..." : "Saving..."}
+                </>
+            ) : hasNewImage ? (
+                <>
+                    <Upload className="h-4 w-4" />
+                    Upload and Save
+                </>
+            ) : (
+                <>
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                </>
+            )}
         </AnimatedButton>
     );
 }
@@ -224,7 +240,7 @@ export function ProfileForm({ profile }: { profile: any }) {
                     </p>
                 )}
 
-                <SubmitButton />
+                <SubmitButton hasNewImage={!!selectedFile} />
             </form>
 
             <AvatarEditor

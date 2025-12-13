@@ -27,11 +27,7 @@ export default function LoginPage({
                     <CardDescription className="text-xs">Enter your username to login</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {searchParams?.registered === 'true' && (
-                        <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-sm font-medium text-center border border-green-200 dark:border-green-800">
-                            Registration successful! Please login to your account.
-                        </div>
-                    )}
+
                     {searchParams?.reason === 'banned' && (
                         <div className="mb-4 p-3 rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-sm font-medium text-center border border-red-200 dark:border-red-800">
                             <strong>Account Banned</strong>

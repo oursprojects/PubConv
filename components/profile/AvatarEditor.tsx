@@ -30,7 +30,7 @@ export function AvatarEditor({ imageSrc, open, onClose, onSave }: AvatarEditorPr
     // Reset state when opening new image
     useEffect(() => {
         if (open) {
-            setZoom(1);
+            setZoom(0.2); // Start at 20% zoom to show more of the image
             setPosition({ x: 0, y: 0 });
         }
     }, [open, imageSrc]);
@@ -145,7 +145,7 @@ export function AvatarEditor({ imageSrc, open, onClose, onSave }: AvatarEditorPr
 
             canvas.toBlob((blob) => {
                 if (blob) onSave(blob);
-            }, 'image/webp', 0.9);
+            }, 'image/webp', 0.6);
 
         } catch (error) {
             console.error("Failed to crop", error);
@@ -198,7 +198,7 @@ export function AvatarEditor({ imageSrc, open, onClose, onSave }: AvatarEditorPr
                         <span className="text-sm text-muted-foreground">-</span>
                         <input
                             type="range"
-                            min="1"
+                            min="0.1"
                             max="3"
                             step="0.1"
                             value={zoom}
