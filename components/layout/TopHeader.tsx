@@ -34,7 +34,7 @@ const navItems = [
     { href: "/feedback", icon: MessageCircle, label: "Feedback" },
 ];
 
-export function TopHeader({ user, role }: { user?: any, role?: string }) {
+export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: any, role?: string, avatarUrl?: string | null }) {
     const pathname = usePathname();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = React.useState(false);
@@ -51,7 +51,12 @@ export function TopHeader({ user, role }: { user?: any, role?: string }) {
     };
 
     const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
-    const avatarUrl = user?.user_metadata?.avatar_url;
+
+    // Prefer the database URL (passed as prop), then metadata
+    const rawAvatarUrl = profileAvatarUrl || user?.user_metadata?.avatar_url;
+
+    // Filter out dicebear legacy URLs
+    const avatarUrl = (rawAvatarUrl && !rawAvatarUrl.includes('dicebear')) ? rawAvatarUrl : null;
     const initials = displayName.charAt(0).toUpperCase();
 
     return (
@@ -87,6 +92,7 @@ export function TopHeader({ user, role }: { user?: any, role?: string }) {
 
                     {user && (
                         <Avatar className="h-8 w-8 ml-2 hidden md:block">
+                            <AvatarImage src={avatarUrl} className="object-cover" />
                             <AvatarFallback>{initials}</AvatarFallback>
                         </Avatar>
                     )}

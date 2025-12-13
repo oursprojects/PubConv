@@ -23,6 +23,7 @@ export type Message = {
         }
     }
     isPending?: boolean
+    reactions?: Record<string, string[]> | null
 }
 
 type ProfileCache = Map<string, { username: string, avatar_url: string | null, role: string }>;
@@ -34,6 +35,7 @@ export function useChat() {
     const [onlineCount, setOnlineCount] = useState(0)
     const [activeUsers, setActiveUsers] = useState<{ username: string, role: string, avatar_url: string | null }[]>([])
     const [username, setUsername] = useState<string | null>(null)
+    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
 
     const supabase = createClient()
     const router = useRouter()
@@ -65,7 +67,7 @@ export function useChat() {
                     profiles(username)
                 )
             `)
-            .order('created_at', { ascending: true })
+            .order('created_at', { ascending: false })
             .limit(50);
 
         if (error) {
@@ -74,7 +76,10 @@ export function useChat() {
         }
 
         if (initialMessages) {
-            initialMessages.forEach((msg: any) => {
+            // Reverse to display in chronological order (oldest first)
+            const messagesInOrder = [...initialMessages].reverse();
+
+            messagesInOrder.forEach((msg: any) => {
                 if (msg.profiles && msg.user_id) {
                     profileCache.current.set(msg.user_id, {
                         username: msg.profiles.username,
@@ -85,7 +90,7 @@ export function useChat() {
             });
             // Supabase returns array or object for relations depending on 1:1 or 1:N.
             // With !reply_to_id it might be single object.
-            const formattedMessages = initialMessages.map((msg: any) => ({
+            const formattedMessages = messagesInOrder.map((msg: any) => ({
                 ...msg,
                 reply_message: Array.isArray(msg.reply_message) ? msg.reply_message[0] : msg.reply_message
             }));
@@ -210,6 +215,17 @@ export function useChat() {
                         router.push('/banned?reason=deleted');
                     }
                 })
+                // BROADCAST for message generic updates (like reactions)
+                .on('broadcast', { event: 'update_message' }, (payload: { payload: { id: string, reactions: Record<string, string[]> } }) => {
+                    console.log('🔄 Message update broadcast:', payload);
+                    if (isMounted && payload.payload) {
+                        setMessages(current => current.map(msg =>
+                            msg.id === payload.payload.id
+                                ? { ...msg, reactions: payload.payload.reactions }
+                                : msg
+                        ));
+                    }
+                })
                 // Presence for online users
                 .on('presence', { event: 'sync' }, () => {
                     const newState = channel.presenceState();
@@ -248,6 +264,7 @@ export function useChat() {
                 .subscribe(async (status: string) => {
                     console.log('Chat room channel status:', status);
                     if (status === 'SUBSCRIBED') {
+                        setConnectionStatus('connected');
                         const trackId = currentUserId || ('anon-' + Math.random().toString(36).slice(2, 9));
                         await channel.track({
                             user_id: trackId,
@@ -256,6 +273,10 @@ export function useChat() {
                             avatar_url: currentAvatar,
                             online_at: new Date().toISOString(),
                         });
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                        setConnectionStatus('disconnected');
+                    } else {
+                        setConnectionStatus('connecting');
                     }
                 });
         };
@@ -294,7 +315,7 @@ export function useChat() {
             created_at: now,
             profiles: {
                 username: username || 'You',
-                avatar_url: '',
+                avatar_url: profileCache.current.get(userId)?.avatar_url || '',
                 role: role
             },
             reply_to_id: replyTo?.id,
@@ -322,7 +343,10 @@ export function useChat() {
             .single();
 
         if (error) {
-            console.error('Error sending message:', error);
+            console.error('❌ Error sending message:', error);
+            console.error('❌ Error code:', error.code);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error details:', error.details);
             setMessages(prev => prev.filter(m => m.id !== tempId));
 
             if (error.message.includes('banned')) {
@@ -339,7 +363,7 @@ export function useChat() {
                 created_at: data.created_at,
                 profiles: {
                     username: username || 'You',
-                    avatar_url: '',
+                    avatar_url: profileCache.current.get(userId)?.avatar_url || '',
                     role: role
                 },
                 reply_to_id: replyTo?.id,
@@ -433,8 +457,77 @@ export function useChat() {
         }
     };
 
+    // Reaction Broadcast - REMOVED, using persistent DB + update broadcast
+    // const [lastReaction, setLastReaction] = useState<{ emoji: string, sender: string, id: string } | null>(null);
+
+    const toggleReaction = async (messageId: string, emoji: string) => {
+        if (!userId) return;
+
+        // Optimistic Update
+        setMessages(current => current.map(msg => {
+            if (msg.id !== messageId) return msg;
+
+            const currentReactions = { ...msg.reactions };
+            const userList = [...(currentReactions[emoji] || [])];
+
+            const userIndex = userList.indexOf(userId);
+            if (userIndex >= 0) {
+                userList.splice(userIndex, 1);
+            } else {
+                userList.push(userId);
+            }
+
+            if (userList.length === 0) {
+                delete currentReactions[emoji];
+            } else {
+                currentReactions[emoji] = userList;
+            }
+
+            return { ...msg, reactions: currentReactions };
+        }));
+
+        const { data, error } = await supabase.rpc('toggle_message_reaction', {
+            p_message_id: messageId,
+            p_emoji: emoji
+        });
+
+        if (error) {
+            console.error('Reaction error:', error);
+            // Revert (could be complex, just re-fetch or ignore)
+            fetchMessages();
+        } else {
+            // Broadcast the new state (data contains the new reactions jsonb)
+            if (channelRef.current && data) {
+                // We need to define a new broadcast event type for message updates 
+                // because 'new_message' is for adds.
+                // Actually this app handles 'new_message' by appending.
+                // I'll add 'update_message' event.
+                channelRef.current.send({
+                    type: 'broadcast',
+                    event: 'update_message',
+                    payload: { id: messageId, reactions: data }
+                });
+            }
+        }
+    };
+
+    // Reconnect function - triggers re-initialization by forcing component remount
+    const reconnect = useCallback(async () => {
+        setConnectionStatus('connecting');
+        if (channelRef.current) {
+            await supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
+        // Re-fetch messages and trigger re-subscription
+        await fetchMessages();
+        // Note: Full reconnection requires component remount or manual re-init
+        // For now, just refresh the page as a simple solution
+        window.location.reload();
+    }, [supabase, fetchMessages]);
+
     return {
         messages,
+        setMessages, // Export setMessages for update handler
         sendMessage,
         userId,
         messagesEndRef,
@@ -442,10 +535,13 @@ export function useChat() {
         onlineCount,
         activeUsers,
         username,
+        connectionStatus,
+        reconnect,
         broadcastDelete,
         broadcastClearAll,
         broadcastMaintenanceMode,
         broadcastUserBanned,
-        broadcastUserDeleted
+        broadcastUserDeleted,
+        toggleReaction
     };
 }

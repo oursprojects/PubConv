@@ -74,13 +74,13 @@ export default async function AdminPage() {
                     />
                 </TabsContent>
 
-                <TabsContent value="users">
-                    <Card className="h-fit max-h-[600px] md:max-h-[80vh] flex flex-col">
+                <TabsContent value="users" className="h-[600px] md:h-[80vh]">
+                    <Card className="h-full flex flex-col">
                         <CardHeader className="shrink-0 p-4 md:p-6 pb-2">
                             <CardTitle>User Management</CardTitle>
                             <CardDescription>View, search, and moderate users.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 overflow-hidden p-0 min-h-[300px]">
+                        <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
                             <div className="h-full w-full">
                                 <UserManagement initialUsers={initialUsers} />
                             </div>
@@ -88,13 +88,13 @@ export default async function AdminPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="feedbacks">
-                    <Card className="h-fit max-h-[600px] md:max-h-[80vh] flex flex-col">
+                <TabsContent value="feedbacks" className="h-[600px] md:h-[80vh]">
+                    <Card className="h-full flex flex-col">
                         <CardHeader className="shrink-0 p-4 md:p-6 pb-2">
                             <CardTitle>User Feedback</CardTitle>
                             <CardDescription>Read what users are saying.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 overflow-auto p-4 md:p-6 min-h-[200px]">
+                        <CardContent className="flex-1 overflow-auto p-4 md:p-6 min-h-0">
                             <FeedbackList initialFeedbacks={feedbacks} />
                         </CardContent>
                     </Card>

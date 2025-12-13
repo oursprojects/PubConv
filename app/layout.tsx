@@ -5,6 +5,7 @@ import { TransitionProvider } from "@/components/transition-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { MaintenanceListener } from "@/components/system/MaintenanceListener";
 import { ThemeSync } from "@/components/system/ThemeSync";
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
 
 import { SplashScreen } from "@/components/ui/splash-screen";
 
@@ -59,13 +60,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <OfflineIndicator />
           <TransitionProvider>
-            <SplashScreen />
             <ThemeSync />
             {children}
             <Toaster position="top-center" />
             <MaintenanceListener />
           </TransitionProvider>
+          <SplashScreen />
         </ThemeProvider>
       </body>
     </html>

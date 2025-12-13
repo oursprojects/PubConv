@@ -13,9 +13,11 @@ export default async function MainLayout({
     const { data: { user } } = await supabase.auth.getUser();
 
     let role = 'user';
+    let avatarUrl = null;
     if (user) {
-        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const { data } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single();
         role = data?.role || 'user';
+        avatarUrl = data?.avatar_url;
     }
 
     const { data: configs } = await supabase.from("app_config").select("*");
@@ -48,7 +50,7 @@ export default async function MainLayout({
     return (
         <RealtimeProvider>
             <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
-                <TopHeader user={user} role={role} />
+                <TopHeader user={user} role={role} avatarUrl={avatarUrl} />
                 <div className="flex-1 w-full min-h-0 flex flex-col">
                     <main className="flex-1 w-full min-h-0 overflow-hidden">
                         {children}

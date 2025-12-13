@@ -2,12 +2,12 @@
 
 import { useChat, Message } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send, Info, Reply, X } from "lucide-react";
-import { InitialsAvatar } from "@/components/ui/initials-avatar";
-import { Trash2 } from "lucide-react";
-import { deleteMessage, clearAllMessages } from "@/app/(admin)/admin/actions";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useState, useRef, useEffect } from "react";
+import { Send, Info, Reply, X, Smile, Trash2, RefreshCw } from "lucide-react";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { deleteMessage, clearAllMessages } from "@/app/(admin)/admin/actions";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
@@ -27,7 +27,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export function ChatInterface() {
     const {
@@ -39,8 +38,11 @@ export function ChatInterface() {
         onlineCount,
         activeUsers,
         username,
+        connectionStatus,
+        reconnect,
         broadcastDelete,
-        broadcastClearAll
+        broadcastClearAll,
+        toggleReaction
     } = useChat();
 
     const [inputValue, setInputValue] = useState("");
@@ -54,14 +56,9 @@ export function ChatInterface() {
     const [rateLimit, setRateLimit] = useState(0);
     const [cooldown, setCooldown] = useState(0);
     const supabase = createClient();
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    // Auto-animate for smooth message transitions
     const [messagesParent] = useAutoAnimate();
-
-    const filteredUsers = activeUsers
-        .filter(u => u.username !== username) // Exclude self
-        .filter(u => u.username.toLowerCase().startsWith(mentionQuery.toLowerCase()));
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const [searchResults, setSearchResults] = useState<{ username: string, avatar_url: string | null, role: string }[]>([]);
 
     useEffect(() => {
         const fetchConfig = async () => {
@@ -79,7 +76,6 @@ export function ChatInterface() {
         fetchConfig();
 
         // Subscribe to rate limit changes via broadcast (from admin)
-        // Use a separate channel for rate limit config to avoid conflicts with chat_room
         const channel = supabase
             .channel('rate_limit_config', {
                 config: { broadcast: { self: true } }
@@ -119,11 +115,37 @@ export function ChatInterface() {
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Search users for mentions
+    useEffect(() => {
+        if (!mentionQuery) {
+            setSearchResults([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('username, avatar_url, role')
+                .ilike('username', `${mentionQuery}%`)
+                .limit(5);
+
+            if (data) {
+                setSearchResults(data);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [mentionQuery, supabase]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         setInputValue(newValue);
 
-        // Simple mention detection: check if word under cursor starts with @
+        // Auto-resize
+        e.target.style.height = 'auto';
+        e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+
+        // Mention detection
         const cursorPosition = e.target.selectionStart || 0;
         const textBeforeCursor = newValue.slice(0, cursorPosition);
         const lastWord = textBeforeCursor.split(/\s/).pop();
@@ -138,14 +160,12 @@ export function ChatInterface() {
     };
 
     const handleMentionSelect = (selectedUsername: string) => {
-        // Replace the current @query with @username
         const lastAtIndex = inputValue.lastIndexOf('@');
         if (lastAtIndex !== -1) {
             const prefix = inputValue.substring(0, lastAtIndex);
-            setInputValue(prefix + `@[${selectedUsername}] `);
+            // Insert @username without brackets
+            setInputValue(prefix + `@${selectedUsername} `);
             setShowMentions(false);
-
-            // Focus input after selection
             inputRef.current?.focus();
         }
     };
@@ -160,7 +180,7 @@ export function ChatInterface() {
     return (
         <>
             <Card className="flex flex-col h-full bg-card border-border shadow-xl overflow-hidden rounded-3xl">
-                {/* Header */}
+                {/* Header ... (same) */}
                 <div className="p-4 border-b border-border flex items-start justify-between bg-background/80 backdrop-blur-sm z-10 w-full shrink-0 rounded-t-3xl">
                     <div>
                         <div className="flex items-center gap-2">
@@ -171,9 +191,42 @@ export function ChatInterface() {
                                 </span>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-green-500 mt-0.5">
-                            <span className="flex h-2 w-2 rounded-full bg-green-500" />
-                            <span>{onlineCount} online</span>
+                        <div className="flex items-center gap-3 text-sm mt-0.5">
+                            {/* Online Count */}
+                            <div className="flex items-center gap-2 text-green-500">
+                                <span className="flex h-2 w-2 rounded-full bg-green-500" />
+                                <span>{onlineCount} online</span>
+                            </div>
+                            {/* Connection Status */}
+                            <div className="flex items-center gap-1.5">
+                                {connectionStatus === 'connected' && (
+                                    <span className="flex items-center gap-1 text-green-500 text-xs">
+                                        <span className="flex h-1.5 w-1.5 rounded-full bg-green-500" />
+                                        Connected
+                                    </span>
+                                )}
+                                {connectionStatus === 'connecting' && (
+                                    <span className="flex items-center gap-1 text-yellow-500 text-xs">
+                                        <RefreshCw className="h-3 w-3 animate-spin" />
+                                        Connecting...
+                                    </span>
+                                )}
+                                {connectionStatus === 'disconnected' && (
+                                    <span className="flex items-center gap-1 text-red-500 text-xs">
+                                        <span className="flex h-1.5 w-1.5 rounded-full bg-red-500" />
+                                        Disconnected
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                            onClick={reconnect}
+                                        >
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Reconnect
+                                        </Button>
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -229,6 +282,7 @@ export function ChatInterface() {
                             {msg.user_id !== userId && (
                                 <InitialsAvatar
                                     username={msg.profiles?.username || "?"}
+                                    avatarUrl={msg.profiles?.avatar_url}
                                     size="md"
                                     isAdmin={msg.profiles?.role === 'admin'}
                                 />
@@ -249,18 +303,20 @@ export function ChatInterface() {
 
                                 {/* Message Bubble */}
                                 <div className={cn(
-                                    "px-3 py-1.5 text-sm rounded-lg relative group/bubble",
+                                    "px-3 py-1.5 text-sm rounded-lg relative group/bubble border shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10",
                                     msg.user_id === userId
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-muted text-foreground"
+                                        ? "bg-primary text-primary-foreground border-primary/20"
+                                        : "bg-muted text-foreground border-border"
                                 )}>
-                                    <p className="whitespace-pre-wrap">
-                                        {msg.content.split(/(@\[.*?\])/g).map((part, index) => {
-                                            const match = part.match(/@\[(.*?)\]/);
-                                            if (match) {
-                                                const mentionedName = match[1];
-                                                const mentionedUser = activeUsers.find(u => u.username === mentionedName);
-                                                const isAdmin = mentionedUser?.role === 'admin';
+                                    <p className="whitespace-pre-wrap break-all">
+                                        {msg.content.split(/(@\w+)/g).map((part, index) => {
+                                            if (part.startsWith('@')) {
+                                                const mentionedName = part.slice(1);
+                                                // Check if it matches any known user (active or search result, or just style it)
+                                                // To properly color admin, we ideally need profile info. 
+                                                // We can check activeUsers for admin status of that user.
+                                                const activeUser = activeUsers.find(u => u.username === mentionedName);
+                                                const isAdmin = activeUser?.role === 'admin';
 
                                                 return (
                                                     <span
@@ -272,7 +328,7 @@ export function ChatInterface() {
                                                                 : (msg.user_id === userId ? "text-primary-foreground underline decoration-primary-foreground/30" : "text-primary")
                                                         )}
                                                     >
-                                                        @{mentionedName}
+                                                        {part}
                                                     </span>
                                                 );
                                             }
@@ -280,10 +336,10 @@ export function ChatInterface() {
                                         })}
                                     </p>
 
-                                    {/* Quick Reply Button (Visible on hover) */}
+                                    {/* Quick Reply & Reactions ... (same) */}
                                     <div className={cn(
-                                        "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity",
-                                        msg.user_id === userId ? "-left-8" : "-right-8"
+                                        "absolute top-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1",
+                                        msg.user_id === userId ? "-left-14" : "-right-14"
                                     )}>
                                         <Button
                                             variant="ghost"
@@ -294,10 +350,63 @@ export function ChatInterface() {
                                         >
                                             <Reply className="h-3 w-3 text-muted-foreground" />
                                         </Button>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted"
+                                                    title="Add Reaction"
+                                                >
+                                                    <Smile className="h-3 w-3 text-muted-foreground" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-1" align={msg.user_id === userId ? "end" : "start"}>
+                                                <div className="flex gap-1">
+                                                    {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
+                                                        <button
+                                                            key={emoji}
+                                                            className="p-2 hover:bg-accent rounded text-lg transition-transform hover:scale-110"
+                                                            onClick={() => toggleReaction(msg.id, emoji)}
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </div>
 
-                                {/* Username • Date */}
+                                {/* Reactions Display ... (same) */}
+                                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                    <div className={cn(
+                                        "flex gap-1 mt-1 flex-wrap max-w-full",
+                                        msg.user_id === userId ? "justify-end" : "justify-start"
+                                    )}>
+                                        {Object.entries(msg.reactions).map(([emoji, users]) => {
+                                            if (!users || users.length === 0) return null;
+                                            const hasReacted = userId && users.includes(userId);
+                                            return (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={() => toggleReaction(msg.id, emoji)}
+                                                    className={cn(
+                                                        "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded-full border shadow-sm transition-colors",
+                                                        hasReacted
+                                                            ? "bg-primary/20 border-primary/30 text-primary-foreground font-medium"
+                                                            : "bg-background border-border text-muted-foreground hover:bg-muted"
+                                                    )}
+                                                >
+                                                    <span>{emoji}</span>
+                                                    <span>{users.length}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Username • Date ... (same) */}
                                 <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
                                     <span className="font-medium">
                                         {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
@@ -313,7 +422,7 @@ export function ChatInterface() {
                                 </div>
                             </div>
 
-                            {/* Admin Actions */}
+                            {/* Admin Actions ... (same) */}
                             {role === 'admin' && (
                                 <div className="flex flex-col justify-center px-2">
                                     <Button
@@ -333,7 +442,7 @@ export function ChatInterface() {
 
                 {/* Input Area */}
                 <div className="p-4 bg-background border-t border-border shrink-0 relative">
-                    {/* Reply Banner */}
+                    {/* Reply Banner ... (same) */}
                     {replyingTo && (
                         <div className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-t-lg border-x border-t text-sm mb-2 animate-in slide-in-from-bottom-2">
                             <div className="flex items-center gap-2 overflow-hidden">
@@ -353,11 +462,11 @@ export function ChatInterface() {
                         </div>
                     )}
 
-                    {/* Mention Suggestions */}
-                    {showMentions && filteredUsers.length > 0 && (
+                    {/* Mention Suggestions - using searchResults now */}
+                    {showMentions && searchResults.length > 0 && (
                         <div className="absolute bottom-full left-4 mb-2 min-w-[200px] w-auto bg-popover border border-border rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
                             <div className="p-1 max-h-[200px] overflow-y-auto">
-                                {filteredUsers.map(user => (
+                                {searchResults.map(user => (
                                     <button
                                         key={user.username}
                                         className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors flex items-center justify-between group gap-3"
@@ -366,6 +475,7 @@ export function ChatInterface() {
                                         <div className="flex items-center gap-2">
                                             <InitialsAvatar
                                                 username={user.username}
+                                                avatarUrl={user.avatar_url}
                                                 size="sm"
                                                 isAdmin={user.role === 'admin'}
                                             />
@@ -382,22 +492,23 @@ export function ChatInterface() {
                         </div>
                     )}
 
-                    <div className="flex gap-3 relative items-center">
+                    <div className="flex gap-3 relative items-end">
                         <div className="flex-1 relative">
-                            <Input
+                            <Textarea
                                 ref={inputRef}
                                 value={inputValue}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
                                 placeholder={cooldown > 0 ? `Please wait ${cooldown}s...` : (replyingTo ? `Reply to ${replyingTo.profiles.username}...` : "Write a message...")}
                                 className={cn(
-                                    "w-full bg-transparent border border-border rounded-lg shadow-none outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground h-11 px-4 pr-16",
+                                    "w-full bg-transparent border border-border rounded-lg shadow-none outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground min-h-[44px] max-h-[150px] px-4 py-3 resize-none",
                                     replyingTo && "rounded-tl-none rounded-tr-none border-t-0"
                                 )}
                                 disabled={cooldown > 0}
                                 maxLength={500}
+                                rows={1}
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/50 pointer-events-none">
+                            <div className="absolute right-3 top-3 text-[10px] text-muted-foreground/50 pointer-events-none">
                                 {inputValue.length}/500
                             </div>
                         </div>
@@ -407,7 +518,7 @@ export function ChatInterface() {
                             disabled={!inputValue.trim() || cooldown > 0}
                             size="icon"
                             className={cn(
-                                "h-10 w-10 rounded-xl shrink-0 transition-all shadow-sm transform-gpu",
+                                "h-11 w-11 rounded-xl shrink-0 transition-all shadow-sm transform-gpu mb-[1px]",
                                 (!inputValue.trim() || cooldown > 0)
                                     ? "bg-transparent text-muted-foreground opacity-50 cursor-not-allowed"
                                     : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -422,7 +533,12 @@ export function ChatInterface() {
                         </Button>
                     </div>
                 </div>
+
             </Card>
+
+            <div className="sr-only">
+                {/* Hidden trigger for accessibility if needed */}
+            </div>
 
             <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
                 <AlertDialogContent>

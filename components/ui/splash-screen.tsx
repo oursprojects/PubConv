@@ -13,15 +13,13 @@ export function SplashScreen() {
 
         if (hasSeen) {
             setShow(false);
-            return;
+        } else {
+            const timer = setTimeout(() => {
+                setShow(false);
+                sessionStorage.setItem("splash-seen", "true");
+            }, 4500); // 4.5s total (Complete cycle)
+            return () => clearTimeout(timer);
         }
-
-        const timer = setTimeout(() => {
-            setShow(false);
-            sessionStorage.setItem("splash-seen", "true");
-        }, 4500); // 4.5s total (Complete cycle)
-
-        return () => clearTimeout(timer);
     }, []);
 
     return (
