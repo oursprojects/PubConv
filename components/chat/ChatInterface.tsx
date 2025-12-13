@@ -301,50 +301,49 @@ export function ChatInterface() {
                                     </div>
                                 )}
 
-                                {/* Message Bubble */}
-                                <div className={cn(
-                                    "px-3 py-1.5 text-sm rounded-lg relative group/bubble border shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10",
-                                    msg.user_id === userId
-                                        ? "bg-primary text-primary-foreground border-primary/20"
-                                        : "bg-muted text-foreground border-border"
-                                )}>
-                                    <p className="whitespace-pre-wrap break-all">
-                                        {msg.content.split(/(@\w+)/g).map((part, index) => {
-                                            if (part.startsWith('@')) {
-                                                const mentionedName = part.slice(1);
-                                                // Check if it matches any known user (active or search result, or just style it)
-                                                // To properly color admin, we ideally need profile info. 
-                                                // We can check activeUsers for admin status of that user.
-                                                const activeUser = activeUsers.find(u => u.username === mentionedName);
-                                                const isAdmin = activeUser?.role === 'admin';
-
-                                                return (
-                                                    <span
-                                                        key={index}
-                                                        className={cn(
-                                                            "font-bold",
-                                                            isAdmin
-                                                                ? (msg.user_id === userId ? "text-amber-200" : "text-amber-600")
-                                                                : (msg.user_id === userId ? "text-primary-foreground underline decoration-primary-foreground/30" : "text-primary")
-                                                        )}
-                                                    >
-                                                        {part}
-                                                    </span>
-                                                );
-                                            }
-                                            return part;
-                                        })}
-                                    </p>
-
-                                    {/* Quick Reply & Reactions ... (same) */}
+                                {/* Message Bubble with reactions */}
+                                <div className="relative mb-5">
                                     <div className={cn(
-                                        "absolute top-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1",
-                                        msg.user_id === userId ? "-left-14" : "-right-14"
+                                        "px-3 py-1.5 text-sm rounded-lg relative group/bubble border shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10",
+                                        msg.user_id === userId
+                                            ? "bg-primary text-primary-foreground border-primary/20"
+                                            : "bg-muted text-foreground border-border"
+                                    )}>
+                                        <p className="whitespace-pre-wrap break-all">
+                                            {msg.content.split(/(@\w+)/g).map((part, index) => {
+                                                if (part.startsWith('@')) {
+                                                    const mentionedName = part.slice(1);
+                                                    const activeUser = activeUsers.find(u => u.username === mentionedName);
+                                                    const isAdmin = activeUser?.role === 'admin';
+
+                                                    return (
+                                                        <span
+                                                            key={index}
+                                                            className={cn(
+                                                                "font-bold",
+                                                                isAdmin
+                                                                    ? (msg.user_id === userId ? "text-amber-200" : "text-amber-600")
+                                                                    : (msg.user_id === userId ? "text-primary-foreground underline decoration-primary-foreground/30" : "text-primary")
+                                                            )}
+                                                        >
+                                                            {part}
+                                                        </span>
+                                                    );
+                                                }
+                                                return part;
+                                            })}
+                                        </p>
+                                    </div>
+
+                                    {/* Reply & React buttons - positioned below the bubble, visible on hover */}
+                                    <div className={cn(
+                                        "absolute top-full mt-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20",
+                                        msg.user_id === userId ? "right-1" : "left-1"
                                     )}>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted"
+                                            className="h-5 w-5 rounded-full bg-background border shadow-sm hover:bg-muted"
                                             onClick={() => setReplyingTo(msg)}
                                             title="Reply"
                                         >
@@ -355,7 +354,7 @@ export function ChatInterface() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted"
+                                                    className="h-5 w-5 rounded-full bg-background border shadow-sm hover:bg-muted"
                                                     title="Add Reaction"
                                                 >
                                                     <Smile className="h-3 w-3 text-muted-foreground" />
@@ -376,35 +375,35 @@ export function ChatInterface() {
                                             </PopoverContent>
                                         </Popover>
                                     </div>
-                                </div>
 
-                                {/* Reactions Display ... (same) */}
-                                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                                    <div className={cn(
-                                        "flex gap-1 mt-1 flex-wrap max-w-full",
-                                        msg.user_id === userId ? "justify-end" : "justify-start"
-                                    )}>
-                                        {Object.entries(msg.reactions).map(([emoji, users]) => {
-                                            if (!users || users.length === 0) return null;
-                                            const hasReacted = userId && users.includes(userId);
-                                            return (
-                                                <button
-                                                    key={emoji}
-                                                    onClick={() => toggleReaction(msg.id, emoji)}
-                                                    className={cn(
-                                                        "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded-full border shadow-sm transition-colors",
-                                                        hasReacted
-                                                            ? "bg-primary/20 border-primary/30 text-primary-foreground font-medium"
-                                                            : "bg-background border-border text-muted-foreground hover:bg-muted"
-                                                    )}
-                                                >
-                                                    <span>{emoji}</span>
-                                                    <span>{users.length}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                    {/* Reactions Display - positioned below the bubble */}
+                                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                        <div className={cn(
+                                            "absolute top-full mt-1 flex gap-0.5 flex-wrap z-10",
+                                            msg.user_id === userId ? "left-1" : "right-1"
+                                        )}>
+                                            {Object.entries(msg.reactions).map(([emoji, users]) => {
+                                                if (!users || users.length === 0) return null;
+                                                const hasReacted = userId && users.includes(userId);
+                                                return (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={() => toggleReaction(msg.id, emoji)}
+                                                        className={cn(
+                                                            "flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full border shadow-sm transition-colors",
+                                                            hasReacted
+                                                                ? "bg-primary/20 border-primary/30 text-foreground font-medium"
+                                                                : "bg-background border-border text-muted-foreground hover:bg-muted"
+                                                        )}
+                                                    >
+                                                        <span>{emoji}</span>
+                                                        <span>{users.length}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Username • Date ... (same) */}
                                 <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
@@ -422,14 +421,15 @@ export function ChatInterface() {
                                 </div>
                             </div>
 
-                            {/* Admin Actions ... (same) */}
+                            {/* Admin Actions - self-start for long messages */}
                             {role === 'admin' && (
-                                <div className="flex flex-col justify-center px-2">
+                                <div className="flex flex-col justify-start self-start pt-1 px-1 shrink-0">
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-transparent"
                                         onClick={() => setMessageToDelete(msg.id)}
+                                        title="Delete message"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -534,7 +534,7 @@ export function ChatInterface() {
                     </div>
                 </div>
 
-            </Card>
+            </Card >
 
             <div className="sr-only">
                 {/* Hidden trigger for accessibility if needed */}
