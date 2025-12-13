@@ -14,6 +14,14 @@ export type Message = {
         avatar_url: string
         role?: string
     }
+    reply_to_id?: string | null
+    reply_message?: {
+        content: string
+        user_id: string
+        profiles: {
+            username: string
+        }
+    }
     isPending?: boolean
 }
 
@@ -46,14 +54,27 @@ export function useChat() {
     }, [router]);
 
     const fetchMessages = useCallback(async () => {
-        const { data: initialMessages } = await supabase
+        const { data: initialMessages, error } = await supabase
             .from('messages')
-            .select('*, profiles(username, avatar_url, role)')
+            .select(`
+                *,
+                profiles(username, avatar_url, role),
+                reply_message:messages!reply_to_id(
+                    content,
+                    user_id,
+                    profiles(username)
+                )
+            `)
             .order('created_at', { ascending: true })
             .limit(50);
 
+        if (error) {
+            console.error('Error fetching messages:', error);
+            return;
+        }
+
         if (initialMessages) {
-            initialMessages.forEach((msg: Message) => {
+            initialMessages.forEach((msg: any) => {
                 if (msg.profiles && msg.user_id) {
                     profileCache.current.set(msg.user_id, {
                         username: msg.profiles.username,
@@ -62,7 +83,14 @@ export function useChat() {
                     });
                 }
             });
-            setMessages(initialMessages as Message[]);
+            // Supabase returns array or object for relations depending on 1:1 or 1:N.
+            // With !reply_to_id it might be single object.
+            const formattedMessages = initialMessages.map((msg: any) => ({
+                ...msg,
+                reply_message: Array.isArray(msg.reply_message) ? msg.reply_message[0] : msg.reply_message
+            }));
+
+            setMessages(formattedMessages as Message[]);
             scrollToBottom();
         }
     }, [supabase, scrollToBottom]);
@@ -248,7 +276,7 @@ export function useChat() {
     }, [messages, scrollToBottom]);
 
     // Send message with optimistic UI + broadcast
-    const sendMessage = async (content: string) => {
+    const sendMessage = async (content: string, replyTo?: Message) => {
         if (!content.trim()) return;
         if (!userId) {
             router.push('/login');
@@ -269,6 +297,14 @@ export function useChat() {
                 avatar_url: '',
                 role: role
             },
+            reply_to_id: replyTo?.id,
+            reply_message: replyTo ? {
+                content: replyTo.content,
+                user_id: replyTo.user_id,
+                profiles: {
+                    username: replyTo.profiles.username
+                }
+            } : undefined,
             isPending: true
         };
 
@@ -277,7 +313,11 @@ export function useChat() {
 
         const { data, error } = await supabase
             .from('messages')
-            .insert({ content: trimmedContent, user_id: userId })
+            .insert({
+                content: trimmedContent,
+                user_id: userId,
+                reply_to_id: replyTo?.id
+            })
             .select('id, created_at')
             .single();
 
@@ -302,6 +342,14 @@ export function useChat() {
                     avatar_url: '',
                     role: role
                 },
+                reply_to_id: replyTo?.id,
+                reply_message: replyTo ? {
+                    content: replyTo.content,
+                    user_id: replyTo.user_id,
+                    profiles: {
+                        username: replyTo.profiles.username
+                    }
+                } : undefined,
                 isPending: false
             };
 

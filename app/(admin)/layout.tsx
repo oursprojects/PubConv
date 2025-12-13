@@ -19,7 +19,7 @@ export default async function AdminLayout({
         <div className="min-h-screen w-full bg-background flex flex-col">
             <TopHeader user={user} role={role} />
             <div className="flex-1 w-full flex flex-col">
-                <main className="flex-1 w-full">
+                <main className="flex-1 w-full flex flex-col">
                     {children}
                 </main>
             </div>

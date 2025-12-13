@@ -93,9 +93,36 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
                 }
             });
 
+        // Create a separate channel for reliable database updates (CDC)
+        // This is more reliable than broadcast for critical state changes like bans
+        const dbChannel = supabase.channel('user_profile_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${userId}`
+                },
+                async (payload: any) => {
+                    console.log('📝 [Global] Profile update received:', payload);
+                    const newProfile = payload.new as { is_banned?: boolean };
+
+                    if (newProfile.is_banned) {
+                        console.log('🚫 [Global] User was banned via DB update');
+                        await supabase.auth.signOut();
+                        router.push('/banned?reason=banned');
+                    }
+                }
+            )
+            .subscribe((status: string) => {
+                console.log('Database channel status:', status);
+            });
+
         return () => {
             console.log('🔌 [Global] Disconnecting from realtime system...');
             supabase.removeChannel(channel);
+            supabase.removeChannel(dbChannel);
         };
         // Removed specific pathname/router dependencies to prevent churn on every navigation
         // userRole might change, userId might change, shouldListen changes only on specific boundary crossing

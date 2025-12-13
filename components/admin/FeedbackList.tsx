@@ -130,22 +130,17 @@ export function FeedbackList({ initialFeedbacks }: { initialFeedbacks: FeedbackI
                                 </CardDescription>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1 text-sm bg-muted/10 py-3 mx-4 rounded-md mb-2">
+                        <CardContent className="flex-1 text-xs md:text-sm bg-muted/10 py-2 px-3 md:py-3 md:mx-4 rounded-md mb-2 mx-2">
                             <p className="whitespace-pre-wrap break-words leading-relaxed text-foreground/90">
                                 {item.content}
                             </p>
                         </CardContent>
-                        <CardFooter className="pt-2 pb-4 flex justify-end border-t bg-muted/5">
+                        <CardFooter className="pt-2 pb-3 md:pb-4 flex justify-end border-t bg-muted/5 px-4">
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <AnimatedButton variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2">
-                                        {deletingId === item.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                            </>
-                                        )}
+                                    <AnimatedButton variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2 md:w-auto md:px-3 md:-mr-2">
+                                        <Trash2 className="h-4 w-4 md:mr-2" />
+                                        <span className="hidden md:inline">Delete</span>
                                     </AnimatedButton>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>

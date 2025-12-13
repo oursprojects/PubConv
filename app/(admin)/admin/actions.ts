@@ -52,8 +52,10 @@ export async function toggleBanUser(userId: string, isBanned: boolean) {
     }
 
     // 2. Update Public Profile (App Logic)
-    const supabase = await createClient()
-    const { error } = await supabase
+    // 2. Update Public Profile (App Logic)
+    // Use admin client to bypass RLS
+    const supabaseAdminForProfile = createAdminClient()
+    const { error } = await supabaseAdminForProfile
         .from('profiles')
         .update({ is_banned: isBanned })
         .eq('id', userId)

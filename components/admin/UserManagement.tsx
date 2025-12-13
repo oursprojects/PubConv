@@ -89,7 +89,7 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
     };
 
     return (
-        <div className="flex flex-col h-full gap-4 p-4 md:p-6">
+        <div className="flex flex-col h-full gap-4 p-2 md:p-6">
             <form onSubmit={handleSearch} className="flex gap-2 shrink-0">
                 <Input
                     placeholder="Search users..."
@@ -115,14 +115,14 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
                     <TableBody>
                         {users.map((user) => (
                             <TableRow key={user.id}>
-                                <TableCell className="flex items-center gap-3">
+                                <TableCell className="flex items-center gap-2 md:gap-3 p-2 md:p-4">
                                     <InitialsAvatar
                                         username={user.username || "?"}
                                         size="sm"
                                         isAdmin={user.role === 'admin'}
                                     />
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-foreground">{user.username}</span>
+                                        <span className="font-medium text-foreground text-sm md:text-base">{user.username}</span>
                                         {/* Show status/role as subtitle on mobile */}
                                         <div className="flex items-center gap-2 md:hidden">
                                             <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
@@ -133,8 +133,8 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
                                         </div>
                                     </div>
                                 </TableCell>
-                                <TableCell className="hidden md:table-cell capitalize text-muted-foreground">{user.role}</TableCell>
-                                <TableCell className="hidden md:table-cell">
+                                <TableCell className="hidden md:table-cell capitalize text-muted-foreground p-2 md:p-4">{user.role}</TableCell>
+                                <TableCell className="hidden md:table-cell p-2 md:p-4">
                                     {user.is_banned ? (
                                         <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                                             Banned
@@ -145,7 +145,7 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
                                         </span>
                                     )}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right p-2 md:p-4">
                                     <div className="flex justify-end gap-2">
                                         {/* Ban/Unban Dialog */}
                                         <AlertDialog>
@@ -159,11 +159,11 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
                                                         <Loader2 className="h-4 w-4 animate-spin" />
                                                     ) : user.is_banned ? (
                                                         <>
-                                                            <CheckCircle className="mr-2 h-4 w-4" /> Unban
+                                                            <CheckCircle className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Unban</span>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Ban className="mr-2 h-4 w-4" /> Ban
+                                                            <Ban className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Ban</span>
                                                         </>
                                                     )}
                                                 </AnimatedButton>

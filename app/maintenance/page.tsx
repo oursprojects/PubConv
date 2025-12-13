@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,9 +55,31 @@ export default function MaintenancePage() {
         };
     }, [supabase, router, returnTo]);
 
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            setIsAuthenticated(!!session);
+            setIsLoading(false);
+        };
+        checkAuth();
+    }, [supabase]);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        setIsAuthenticated(false);
+        router.push('/login');
+    };
+
+    const handleLogin = () => {
+        router.push('/login');
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <Card className="max-w-md w-full text-center">
+            <Card className="max-w-md w-[90%] md:w-full text-center">
                 <CardHeader>
                     <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                         <Construction className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
@@ -78,6 +100,26 @@ export default function MaintenancePage() {
                     <p className="text-xs text-muted-foreground/60">
                         You&apos;ll be redirected automatically when maintenance ends.
                     </p>
+
+                    {!isLoading && (
+                        <div className="pt-4 border-t border-border mt-6">
+                            {isAuthenticated ? (
+                                <button
+                                    onClick={handleLogout}
+                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                                >
+                                    Log out
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleLogin}
+                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                                >
+                                    Log in
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

@@ -20,7 +20,7 @@ export default async function RegisterPage() {
     // Show maintenance message if maintenance mode is active
     if (maintenanceMode) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="flex min-h-screen items-center justify-center bg-background px-4">
                 <Card className="w-full max-w-sm p-6 rounded-3xl shadow-xl bg-card/80 backdrop-blur-sm text-center">
                     <CardHeader>
                         <div className="mx-auto bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-full mb-4">
@@ -44,7 +44,7 @@ export default async function RegisterPage() {
     // Show disabled signup message
     if (disableSignup) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="flex min-h-screen items-center justify-center bg-background px-4">
                 <Card className="w-full max-w-sm p-6 rounded-3xl shadow-xl bg-card/80 backdrop-blur-sm text-center">
                     <CardHeader>
                         <div className="mx-auto bg-muted p-4 rounded-full mb-4">

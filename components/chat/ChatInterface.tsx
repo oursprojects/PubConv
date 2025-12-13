@@ -3,7 +3,7 @@
 import { useChat, Message } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Info } from "lucide-react";
+import { Send, Info, Reply, X } from "lucide-react";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { Trash2 } from "lucide-react";
 import { deleteMessage, clearAllMessages } from "@/app/(admin)/admin/actions";
@@ -48,6 +48,7 @@ export function ChatInterface() {
     const [mentionQuery, setMentionQuery] = useState("");
     const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
     // Rate Limiting
     const [rateLimit, setRateLimit] = useState(0);
@@ -108,9 +109,10 @@ export function ChatInterface() {
     const handleSend = () => {
         if (!inputValue.trim() || cooldown > 0) return;
 
-        sendMessage(inputValue);
+        sendMessage(inputValue, replyingTo || undefined);
         setInputValue("");
         setShowMentions(false);
+        setReplyingTo(null);
 
         if (rateLimit > 0) {
             setCooldown(rateLimit);
@@ -234,11 +236,20 @@ export function ChatInterface() {
 
                             <div className={cn(
                                 "flex flex-col",
-                                msg.user_id === userId ? "items-end" : "items-start"
+                                msg.user_id === userId ? "items-end" : "items-start",
+                                "max-w-[80%]"
                             )}>
+                                {/* Reply Context */}
+                                {msg.reply_message && (
+                                    <div className="mb-1 text-xs text-muted-foreground flex items-center gap-1 bg-muted/30 px-2 py-1 rounded-md border-l-2 border-primary/50 max-w-full truncate">
+                                        <span className="font-semibold shrink-0">@{msg.reply_message.profiles.username}:</span>
+                                        <span className="truncate opacity-80">{msg.reply_message.content}</span>
+                                    </div>
+                                )}
+
                                 {/* Message Bubble */}
                                 <div className={cn(
-                                    "px-3 py-1.5 text-sm rounded-lg",
+                                    "px-3 py-1.5 text-sm rounded-lg relative group/bubble",
                                     msg.user_id === userId
                                         ? "bg-primary text-primary-foreground"
                                         : "bg-muted text-foreground"
@@ -255,8 +266,10 @@ export function ChatInterface() {
                                                     <span
                                                         key={index}
                                                         className={cn(
-                                                            "font-semibold",
-                                                            isAdmin ? "text-amber-500" : "text-primary"
+                                                            "font-bold",
+                                                            isAdmin
+                                                                ? (msg.user_id === userId ? "text-amber-200" : "text-amber-600")
+                                                                : (msg.user_id === userId ? "text-primary-foreground underline decoration-primary-foreground/30" : "text-primary")
                                                         )}
                                                     >
                                                         @{mentionedName}
@@ -266,6 +279,22 @@ export function ChatInterface() {
                                             return part;
                                         })}
                                     </p>
+
+                                    {/* Quick Reply Button (Visible on hover) */}
+                                    <div className={cn(
+                                        "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity",
+                                        msg.user_id === userId ? "-left-8" : "-right-8"
+                                    )}>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted"
+                                            onClick={() => setReplyingTo(msg)}
+                                            title="Reply"
+                                        >
+                                            <Reply className="h-3 w-3 text-muted-foreground" />
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {/* Username • Date */}
@@ -304,6 +333,26 @@ export function ChatInterface() {
 
                 {/* Input Area */}
                 <div className="p-4 bg-background border-t border-border shrink-0 relative">
+                    {/* Reply Banner */}
+                    {replyingTo && (
+                        <div className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-t-lg border-x border-t text-sm mb-2 animate-in slide-in-from-bottom-2">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <Reply className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="font-medium text-muted-foreground">Replying to</span>
+                                <span className="font-bold truncate max-w-[150px]">@{replyingTo.profiles.username}</span>
+                                <span className="text-muted-foreground truncate opacity-70 border-l pl-2 text-xs">{replyingTo.content}</span>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => setReplyingTo(null)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+
                     {/* Mention Suggestions */}
                     {showMentions && filteredUsers.length > 0 && (
                         <div className="absolute bottom-full left-4 mb-2 min-w-[200px] w-auto bg-popover border border-border rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
@@ -340,8 +389,11 @@ export function ChatInterface() {
                                 value={inputValue}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
-                                placeholder={cooldown > 0 ? `Please wait ${cooldown}s...` : "Write a message..."}
-                                className="w-full bg-transparent border border-border rounded-lg shadow-none outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground h-11 px-4 pr-16"
+                                placeholder={cooldown > 0 ? `Please wait ${cooldown}s...` : (replyingTo ? `Reply to ${replyingTo.profiles.username}...` : "Write a message...")}
+                                className={cn(
+                                    "w-full bg-transparent border border-border rounded-lg shadow-none outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground h-11 px-4 pr-16",
+                                    replyingTo && "rounded-tl-none rounded-tr-none border-t-0"
+                                )}
                                 disabled={cooldown > 0}
                                 maxLength={500}
                             />

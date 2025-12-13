@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid } from "lucide-react";
+import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { ThemeSelector } from "@/components/user/ThemeSelector";
 
 const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -58,6 +64,25 @@ export function TopHeader({ user, role }: { user?: any, role?: string }) {
 
                 <div className="flex flex-1 items-center justify-end space-x-2">
                     <InstallPWA className="hidden md:flex" />
+
+                    {/* Theme Selector Popover */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <AnimatedButton
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border border-border bg-muted/50 hover:bg-muted"
+                                title="Change Color Theme"
+                            >
+                                <Palette className="h-4 w-4" />
+                                <span className="sr-only">Change Theme</span>
+                            </AnimatedButton>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="end">
+                            <ThemeSelector />
+                        </PopoverContent>
+                    </Popover>
+
                     <ThemeToggle />
 
                     {user && (

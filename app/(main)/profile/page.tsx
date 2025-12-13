@@ -39,7 +39,7 @@ export default async function ProfilePage() {
                 </TabsList>
 
                 <TabsContent value="profile" className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-                    <Card>
+                    <Card className="overflow-hidden">
                         <CardHeader>
                             <CardTitle>Profile Information</CardTitle>
                             <CardDescription>

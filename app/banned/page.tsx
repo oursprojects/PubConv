@@ -42,7 +42,7 @@ export default function BannedPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <Card className="max-w-md w-full text-center">
+            <Card className="max-w-md w-[90%] md:w-full text-center">
                 <CardHeader>
                     <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                         <Ban className="h-8 w-8 text-red-600 dark:text-red-400" />

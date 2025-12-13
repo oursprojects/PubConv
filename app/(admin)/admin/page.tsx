@@ -56,8 +56,8 @@ export default async function AdminPage() {
     const feedbacks = await getFeedbacks();
 
     return (
-        <div className="container mx-auto py-10 max-w-5xl">
-            <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+        <div className="container mx-auto p-4 md:py-8 flex flex-col gap-6 max-w-5xl">
+            <h1 className="text-2xl md:text-3xl font-bold shrink-0">Admin Dashboard</h1>
 
             <AdminTabs defaultTab="system">
                 <TabsList className="grid w-full grid-cols-3 max-w-md">
@@ -66,7 +66,7 @@ export default async function AdminPage() {
                     <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="system" className="space-y-6">
+                <TabsContent value="system">
                     <SystemControls
                         initialMaintenanceMode={Boolean(maintenanceMode)}
                         initialDisableSignup={Boolean(disableSignup)}
@@ -75,25 +75,26 @@ export default async function AdminPage() {
                 </TabsContent>
 
                 <TabsContent value="users">
-                    {/* Fixed height to ensure scrolling happens properly inside */}
-                    <Card className="h-[calc(100vh-220px)] flex flex-col">
-                        <CardHeader className="shrink-0">
+                    <Card className="h-fit max-h-[600px] md:max-h-[80vh] flex flex-col">
+                        <CardHeader className="shrink-0 p-4 md:p-6 pb-2">
                             <CardTitle>User Management</CardTitle>
                             <CardDescription>View, search, and moderate users.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 overflow-hidden p-0">
-                            <UserManagement initialUsers={initialUsers} />
+                        <CardContent className="flex-1 overflow-hidden p-0 min-h-[300px]">
+                            <div className="h-full w-full">
+                                <UserManagement initialUsers={initialUsers} />
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
                 <TabsContent value="feedbacks">
-                    <Card className="border-none shadow-none bg-transparent">
-                        <CardHeader className="px-0">
+                    <Card className="h-fit max-h-[600px] md:max-h-[80vh] flex flex-col">
+                        <CardHeader className="shrink-0 p-4 md:p-6 pb-2">
                             <CardTitle>User Feedback</CardTitle>
                             <CardDescription>Read what users are saying.</CardDescription>
                         </CardHeader>
-                        <CardContent className="px-0">
+                        <CardContent className="flex-1 overflow-auto p-4 md:p-6 min-h-[200px]">
                             <FeedbackList initialFeedbacks={feedbacks} />
                         </CardContent>
                     </Card>

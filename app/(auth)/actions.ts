@@ -85,7 +85,6 @@ export async function signup(formData: FormData) {
             data: {
                 username: username,
                 display_name: username, // Use username as display_name
-                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
             }
         }
     })

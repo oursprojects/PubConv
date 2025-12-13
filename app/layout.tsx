@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { TransitionProvider } from "@/components/transition-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { MaintenanceListener } from "@/components/system/MaintenanceListener";
+import { ThemeSync } from "@/components/system/ThemeSync";
+
+import { SplashScreen } from "@/components/ui/splash-screen";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -37,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
@@ -57,8 +60,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TransitionProvider>
+            <SplashScreen />
+            <ThemeSync />
             {children}
-            <Toaster />
+            <Toaster position="top-center" />
             <MaintenanceListener />
           </TransitionProvider>
         </ThemeProvider>

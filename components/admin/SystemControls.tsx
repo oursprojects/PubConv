@@ -67,64 +67,68 @@ export function SystemControls({ initialMaintenanceMode, initialDisableSignup, i
                 {isConnected ? 'Realtime Connected' : 'Connecting...'}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Maintenance Mode</CardTitle>
-                        <CardDescription>Lock the application for users.</CardDescription>
+                    <CardHeader className="p-3 md:p-6 pb-1 md:pb-4">
+                        <CardTitle className="text-base md:text-xl">Maintenance Mode</CardTitle>
+                        <CardDescription className="text-xs md:text-sm">Lock the application for users.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                        <Label className="text-base">Enable Maintenance</Label>
+                    <CardContent className="p-3 md:p-6 pt-0 md:pt-0 flex items-center justify-between">
+                        <Label className="text-sm md:text-base">Enable Maintenance</Label>
                         <AnimatedButton
+                            size="sm"
                             variant={maintenanceMode ? "destructive" : "outline"}
                             disabled={loading === 'maintenance_mode'}
                             onClick={() => setShowConfirm({ type: 'maintenance_mode', value: !maintenanceMode })}
                         >
-                            {loading === 'maintenance_mode' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                            {loading === 'maintenance_mode' && <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" />}
                             {maintenanceMode ? "Enabled" : "Disabled"}
                         </AnimatedButton>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Registration</CardTitle>
-                        <CardDescription>Control new user signups.</CardDescription>
+                    <CardHeader className="p-3 md:p-6 pb-1 md:pb-4">
+                        <CardTitle className="text-base md:text-xl">Registration</CardTitle>
+                        <CardDescription className="text-xs md:text-sm">Control new user signups.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                        <Label className="text-base">Disable Signups</Label>
+                    <CardContent className="p-3 md:p-6 pt-0 md:pt-0 flex items-center justify-between">
+                        <Label className="text-sm md:text-base">Disable Signups</Label>
                         <AnimatedButton
+                            size="sm"
                             variant={disableSignup ? "destructive" : "outline"}
                             disabled={loading === 'disable_signup'}
                             onClick={() => setShowConfirm({ type: 'disable_signup', value: !disableSignup })}
                         >
-                            {loading === 'disable_signup' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            {disableSignup ? "Yes (Disabled)" : "No (Allowed)"}
+                            {loading === 'disable_signup' && <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" />}
+                            {disableSignup ? "Disabled" : "Allowed"}
                         </AnimatedButton>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Chat Rate Limit</CardTitle>
-                        <CardDescription>Seconds between messages per user.</CardDescription>
+                    <CardHeader className="p-3 md:p-6 pb-1 md:pb-4">
+                        <CardTitle className="text-base md:text-xl">Chat Rate Limit</CardTitle>
+                        <CardDescription className="text-xs md:text-sm">Seconds between messages per user.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex items-center gap-4">
+                    <CardContent className="p-3 md:p-6 pt-0 md:pt-0 flex items-center gap-4">
                         <div className="grid gap-2 w-full">
-                            <Label htmlFor="rateLimit">Interval (Seconds)</Label>
+                            <Label htmlFor="rateLimit" className="text-sm md:text-base">Interval (Seconds)</Label>
                             <div className="flex gap-2">
                                 <Input
                                     id="rateLimit"
                                     type="number"
                                     min="0"
+                                    className="h-9 md:h-10"
                                     value={rateLimit}
                                     onChange={(e) => setRateLimit(Number(e.target.value))}
                                 />
                                 <AnimatedButton
+                                    size="sm"
                                     onClick={() => handleToggle('message_rate_limit', rateLimit)}
                                     disabled={loading === 'message_rate_limit'}
                                 >
-                                    {loading === 'message_rate_limit' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                                    {loading === 'message_rate_limit' && <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" />}
                                     Save
                                 </AnimatedButton>
                             </div>
