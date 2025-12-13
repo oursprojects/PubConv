@@ -42,7 +42,7 @@ export function SplashScreen() {
                         >
                             <div className="relative h-32 w-32 drop-shadow-2xl">
                                 <Image
-                                    src="/logo.png"
+                                    src="/icon.png"
                                     alt="PubConv Logo"
                                     fill
                                     className="object-contain"
