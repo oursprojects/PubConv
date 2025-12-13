@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare } from "lucide-react"; // Using app logo icon
+import Image from "next/image";
 
 export function SplashScreen() {
     const [show, setShow] = useState(true);
@@ -40,8 +40,14 @@ export function SplashScreen() {
                             transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }} // Longer entrance
                             className="relative"
                         >
-                            <div className="h-24 w-24 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-                                <MessageSquare className="h-12 w-12 text-primary-foreground" />
+                            <div className="relative h-32 w-32 drop-shadow-2xl">
+                                <Image
+                                    src="/logo.png"
+                                    alt="PubConv Logo"
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                />
                             </div>
                         </motion.div>
 
