@@ -1,6 +1,7 @@
 import { TopHeader } from "@/components/layout/TopHeader";
 import { MaintenanceScreen } from "@/components/maintenance-screen";
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
+import PageTransition from "@/components/page-transition";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -50,10 +51,14 @@ export default async function MainLayout({
     return (
         <RealtimeProvider>
             <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
+                {/* Header stays static - outside of PageTransition */}
                 <TopHeader user={user} role={role} avatarUrl={avatarUrl} />
                 <div className="flex-1 w-full min-h-0 flex flex-col">
                     <main className="flex-1 w-full min-h-0 overflow-hidden">
-                        {children}
+                        {/* Only page content animates */}
+                        <PageTransition>
+                            {children}
+                        </PageTransition>
                     </main>
                 </div>
             </div>

@@ -30,7 +30,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
                     duration: 0.35,
                     ease: [0.22, 1, 0.36, 1] // Custom easing for smooth feel
                 }}
-                className="w-full"
+                className="w-full h-full"
             >
                 {children}
             </motion.div>

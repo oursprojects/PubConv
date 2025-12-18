@@ -41,6 +41,19 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const [isOpen, setIsOpen] = React.useState(false);
 
     const handleLogout = async () => {
+        // Show confirmation dialog
+        const { swalConfirm } = await import('@/lib/swal');
+        const result = await swalConfirm(
+            'Sign Out?',
+            'Are you sure you want to sign out?',
+            {
+                confirmButtonText: 'Yes, Sign Out',
+                cancelButtonText: 'Cancel',
+            }
+        );
+
+        if (!result.isConfirmed) return;
+
         setIsLoggingOut(true);
         toast.loading("Signing out...");
         const supabase = createClient();
@@ -60,8 +73,8 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const initials = displayName.charAt(0).toUpperCase();
 
     return (
-        <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-14 items-center px-4 md:px-6">
+        <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transform-gpu">
+            <div className="container flex h-14 items-center px-4 md:px-6 transform-gpu">
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <img src="/logo.png" alt="PubConv" className="h-6 w-auto" />
                     <span className="md:inline-block font-bold font-poppins">PubConv</span>
