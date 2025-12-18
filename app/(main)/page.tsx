@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Globe, Search, UserCircle, Send } from "lucide-react";
+import { Sparkles, Globe, Search, UserCircle, Send, CalendarDays, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -9,6 +9,12 @@ const features = [
     icon: Globe,
     title: "Global Chat",
     description: "Connect with everyone in one space.",
+  },
+  {
+    href: "/calendar",
+    icon: CalendarDays,
+    title: "Calendar",
+    description: "View dates and plan your schedule.",
   },
   {
     href: "/search",
@@ -27,6 +33,12 @@ const features = [
     icon: Send,
     title: "Feedback",
     description: "Write us a feedback or report a bug.",
+  },
+  {
+    href: "/about",
+    icon: Info,
+    title: "About",
+    description: "Learn more about PubConv.",
   },
 ];
 

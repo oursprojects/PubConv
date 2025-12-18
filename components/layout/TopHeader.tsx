@@ -3,11 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette } from "lucide-react";
+import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import { ThemeSelector } from "@/components/user/ThemeSelector";
 const navItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/chat", icon: MessageSquare, label: "Global Chat" },
+    { href: "/calendar", icon: CalendarDays, label: "Calendar" },
     { href: "/search", icon: Search, label: "Discover" },
     { href: "/profile", icon: User, label: "Profile" },
     { href: "/feedback", icon: MessageCircle, label: "Feedback" },
@@ -70,7 +71,6 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
 
     // Filter out dicebear legacy URLs
     const avatarUrl = (rawAvatarUrl && !rawAvatarUrl.includes('dicebear')) ? rawAvatarUrl : null;
-    const initials = displayName.charAt(0).toUpperCase();
 
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transform-gpu">
@@ -79,6 +79,13 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                     <img src="/logo.png" alt="PubConv" className="h-6 w-auto" />
                     <span className="md:inline-block font-bold font-poppins">PubConv</span>
                 </Link>
+
+                {/* Current Date */}
+                <div className="hidden md:flex items-center ml-4 px-3 py-1 bg-muted/50 rounded-lg">
+                    <span className="text-xs text-muted-foreground font-medium">
+                        {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    </span>
+                </div>
 
                 <div className="flex flex-1 items-center justify-end space-x-2">
                     <InstallPWA className="hidden md:flex" />
@@ -104,10 +111,13 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                     <ThemeToggle />
 
                     {user && (
-                        <Avatar className="h-8 w-8 ml-2 shrink-0 ring-2 ring-border">
-                            <AvatarImage src={avatarUrl} className="object-cover" />
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
+                        <InitialsAvatar
+                            username={user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'U'}
+                            avatarUrl={avatarUrl}
+                            size="md"
+                            isAdmin={role === 'admin'}
+                            className="ml-2"
+                        />
                     )}
 
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
@@ -131,8 +141,8 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                             alignOffset={-10}
                             className="w-14 min-w-0 flex flex-col items-center bg-background/95 backdrop-blur-md border rounded-[2rem] p-2 gap-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-200"
                         >
-                            {/* Navigation Items */}
-                            {navItems.map((item, index) => (
+                            {/* Navigation Items - Only show when NOT on home page */}
+                            {pathname !== "/" && navItems.map((item, index) => (
                                 <DropdownMenuItem
                                     key={item.href}
                                     asChild
@@ -160,7 +170,7 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 <DropdownMenuItem
                                     asChild
                                     className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
-                                    style={{ animationDelay: `${navItems.length * 50}ms`, animationFillMode: 'both' }}
+                                    style={{ animationDelay: `${pathname === "/" ? 0 : navItems.length * 50}ms`, animationFillMode: 'both' }}
                                 >
                                     <Link
                                         href="/admin"
@@ -178,31 +188,36 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 </DropdownMenuItem>
                             )}
 
-                            {/* About Item */}
-                            <DropdownMenuItem
-                                asChild
-                                className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
-                                style={{ animationDelay: `${(navItems.length + (role === 'admin' ? 1 : 0)) * 50}ms`, animationFillMode: 'both' }}
-                            >
-                                <Link
-                                    href="/about"
-                                    className={cn(
-                                        "flex items-center justify-center h-9 w-9 rounded-xl border transition-all duration-200",
-                                        pathname === "/about"
-                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                            : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105"
-                                    )}
-                                    title="About"
+                            {/* About Item - Only show when NOT on home page */}
+                            {pathname !== "/" && (
+                                <DropdownMenuItem
+                                    asChild
+                                    className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
+                                    style={{ animationDelay: `${(navItems.length + (role === 'admin' ? 1 : 0)) * 50}ms`, animationFillMode: 'both' }}
                                 >
-                                    <Info className="h-4 w-4" />
-                                    <span className="sr-only">About</span>
-                                </Link>
-                            </DropdownMenuItem>
+                                    <Link
+                                        href="/about"
+                                        className={cn(
+                                            "flex items-center justify-center h-9 w-9 rounded-xl border transition-all duration-200",
+                                            pathname === "/about"
+                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105"
+                                        )}
+                                        title="About"
+                                    >
+                                        <Info className="h-4 w-4" />
+                                        <span className="sr-only">About</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            )}
 
-                            {/* Logout Item */}
+                            {/* Logout Item - Always show */}
                             <DropdownMenuItem
-                                className="p-0 focus:bg-transparent justify-center mt-1 animate-in fade-in-0 slide-in-from-right-2"
-                                style={{ animationDelay: `${(navItems.length + (role === 'admin' ? 2 : 1)) * 50}ms`, animationFillMode: 'both' }}
+                                className={cn(
+                                    "p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2",
+                                    pathname !== "/" && "mt-1"
+                                )}
+                                style={{ animationDelay: `${pathname === "/" ? (role === 'admin' ? 50 : 0) : (navItems.length + (role === 'admin' ? 2 : 1)) * 50}ms`, animationFillMode: 'both' }}
                                 onSelect={(e) => {
                                     e.preventDefault();
                                     handleLogout();

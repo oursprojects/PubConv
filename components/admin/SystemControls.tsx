@@ -62,11 +62,6 @@ export function SystemControls({ initialMaintenanceMode, initialDisableSignup, i
 
     return (
         <div className="space-y-4">
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${isConnected ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
-                {isConnected ? 'Realtime Connected' : 'Connecting...'}
-            </div>
-
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="p-3 md:p-6 pb-1 md:pb-4">

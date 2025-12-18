@@ -3,7 +3,7 @@ import { Wrench } from "lucide-react";
 export function MaintenanceScreen() {
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-4 text-center animate-in fade-in duration-300">
-            <div className="rounded-full bg-muted p-6 mb-6">
+            <div className="rounded-2xl bg-muted p-6 mb-6">
                 <Wrench className="h-12 w-12 text-primary animate-pulse" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight mb-2">System Maintenance</h1>

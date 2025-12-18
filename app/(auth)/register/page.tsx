@@ -23,7 +23,7 @@ export default async function RegisterPage() {
             <div className="flex min-h-screen items-center justify-center bg-background px-4">
                 <Card className="w-full max-w-sm p-6 rounded-3xl shadow-xl bg-card/80 backdrop-blur-sm text-center">
                     <CardHeader>
-                        <div className="mx-auto bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-full mb-4">
+                        <div className="mx-auto bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-2xl mb-4">
                             <Construction className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
                         </div>
                         <CardTitle className="text-2xl">Registration Unavailable</CardTitle>
@@ -47,7 +47,7 @@ export default async function RegisterPage() {
             <div className="flex min-h-screen items-center justify-center bg-background px-4">
                 <Card className="w-full max-w-sm p-6 rounded-3xl shadow-xl bg-card/80 backdrop-blur-sm text-center">
                     <CardHeader>
-                        <div className="mx-auto bg-muted p-4 rounded-full mb-4">
+                        <div className="mx-auto bg-muted p-4 rounded-2xl mb-4">
                             <Ban className="h-8 w-8 text-destructive" />
                         </div>
                         <CardTitle className="text-2xl">Registration Disabled</CardTitle>
@@ -71,7 +71,7 @@ export default async function RegisterPage() {
                 <InstallPWA />
                 <ModeToggle />
             </div>
-            <Card className="w-full max-w-[340px] rounded-2xl shadow-xl bg-card/80 backdrop-blur-sm">
+            <Card className="w-full max-w-[340px] rounded-3xl shadow-xl bg-card/60 backdrop-blur-xl border-border/50">
                 <CardHeader className="space-y-1 text-center pb-2 pt-5 px-5">
                     <div className="flex justify-center mb-2">
                         <Image src="/logo.png" alt="PubConv Logo" width={40} height={40} className="rounded-xl" />

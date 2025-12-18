@@ -18,12 +18,16 @@ export default function LoginPage({
                 <InstallPWA />
                 <ModeToggle />
             </div>
-            <Card className="w-full max-w-[340px] rounded-2xl shadow-xl bg-card/80 backdrop-blur-sm">
-                <CardHeader className="space-y-1 text-center pb-2 pt-5 px-5">
-                    <div className="flex justify-center mb-3">
-                        <Image src="/logo.png" alt="PubConv Logo" width={56} height={56} className="rounded-xl" />
-                    </div>
-                    <CardTitle className="text-xl font-bold font-poppins">PubConv</CardTitle>
+            {/* Floating Logo */}
+            <div className="relative z-10 -mb-10">
+                <Image src="/logo.png" alt="PubConv Logo" width={80} height={80} className="rounded-2xl shadow-lg" />
+            </div>
+            <Card className="w-full max-w-[340px] rounded-3xl shadow-xl bg-card/60 backdrop-blur-xl border-border/50 pt-12">
+                <CardHeader className="space-y-1 text-center pb-2 pt-2 px-5">
+                    <CardTitle className="text-2xl font-extrabold font-poppins tracking-tight bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-clip-text">
+                        <span className="bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">Pub</span>
+                        <span>Conv</span>
+                    </CardTitle>
                     <CardDescription className="text-xs">Enter your username to login</CardDescription>
                 </CardHeader>
                 <CardContent>

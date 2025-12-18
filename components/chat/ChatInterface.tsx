@@ -334,7 +334,7 @@ export function ChatInterface() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 rounded-full bg-background/80 border shadow-sm hover:bg-muted"
+                                            className="h-6 w-6 rounded-lg bg-background/80 border shadow-sm hover:bg-muted"
                                             onClick={() => setReplyingTo(msg)}
                                             title="Reply"
                                         >
@@ -345,7 +345,7 @@ export function ChatInterface() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-6 w-6 rounded-full bg-background/80 border shadow-sm hover:bg-muted"
+                                                    className="h-6 w-6 rounded-lg bg-background/80 border shadow-sm hover:bg-muted"
                                                     title="Add Reaction"
                                                 >
                                                     <Smile className="h-3 w-3 text-muted-foreground" />
@@ -410,7 +410,7 @@ export function ChatInterface() {
 
                                             return (
                                                 <div className={cn(
-                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-full border shadow-sm z-10",
+                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-lg border shadow-sm z-10",
                                                     hasUserReacted
                                                         ? "bg-background border-primary/40"
                                                         : "bg-background border-border",
@@ -490,7 +490,7 @@ export function ChatInterface() {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                className="h-6 w-6 p-0 rounded-lg hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => setReplyingTo(null)}
                             >
                                 <X className="h-4 w-4" />

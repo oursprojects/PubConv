@@ -22,8 +22,8 @@ export default function AboutPage() {
                 <div className="text-center space-y-3">
                     {/* Avatar */}
                     <div className="relative mx-auto w-24 h-24 animate-in zoom-in-50 fade-in-0 duration-700" style={{ animationFillMode: 'both' }}>
-                        <div className="absolute -inset-1 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full blur-md"></div>
-                        <div className="relative h-24 w-24 rounded-full overflow-hidden ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
+                        <div className="absolute -inset-1 bg-gradient-to-br from-primary/30 to-primary/10 rounded-2xl blur-md"></div>
+                        <div className="relative h-24 w-24 rounded-2xl overflow-hidden ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
                             <Image
                                 src="/mike_ryno.png"
                                 alt="Mike Ryno Santiago"
@@ -86,7 +86,7 @@ export default function AboutPage() {
                         href="https://www.facebook.com/RynoMike.santiago/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full text-xs hover:bg-blue-500/10 hover:text-blue-600 transition-all border border-transparent hover:border-blue-500/30"
+                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-xl text-xs hover:bg-blue-500/10 hover:text-blue-600 transition-all border border-transparent hover:border-blue-500/30"
                     >
                         <Facebook className="h-3.5 w-3.5" />
                         Facebook
@@ -95,7 +95,7 @@ export default function AboutPage() {
                         href="https://github.com/oursprojects"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full text-xs hover:bg-muted transition-all border border-transparent hover:border-border"
+                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-xl text-xs hover:bg-muted transition-all border border-transparent hover:border-border"
                     >
                         <Github className="h-3.5 w-3.5" />
                         GitHub

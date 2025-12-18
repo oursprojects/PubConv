@@ -81,7 +81,7 @@ export default function MaintenancePage() {
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <Card className="max-w-md w-[90%] md:w-full text-center">
                 <CardHeader>
-                    <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                         <Construction className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
                     </div>
                     <CardTitle className="text-2xl">Under Maintenance</CardTitle>

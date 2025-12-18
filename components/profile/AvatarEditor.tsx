@@ -168,7 +168,7 @@ export function AvatarEditor({ imageSrc, open, onClose, onSave }: AvatarEditorPr
                     {/* Viewport - Circular Mask */}
                     <div
                         ref={containerRef}
-                        className="relative h-[200px] w-[200px] overflow-hidden rounded-full border-2 border-primary shadow-inner bg-black/5 cursor-move"
+                        className="relative h-[200px] w-[200px] overflow-hidden rounded-2xl border-2 border-primary shadow-inner bg-black/5 cursor-move"
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}

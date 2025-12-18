@@ -67,7 +67,7 @@ export function ThemeSelector() {
                         key={theme.name}
                         onClick={() => handleThemeChange(theme.name)}
                         className={cn(
-                            "group relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-muted transition-all hover:border-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                            "group relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-muted transition-all hover:border-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                             currentTheme === theme.name ? "border-primary" : "border-transparent",
                             theme.color
                         )}

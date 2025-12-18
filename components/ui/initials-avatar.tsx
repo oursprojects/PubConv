@@ -40,7 +40,7 @@ export function InitialsAvatar({
         <div className={cn("relative inline-flex shrink-0", sizeClasses[size], className)}>
             <div
                 className={cn(
-                    "flex h-full w-full items-center justify-center rounded-md font-medium overflow-hidden",
+                    "flex h-full w-full items-center justify-center rounded-xl font-medium overflow-hidden",
                     "transform-gpu will-change-transform",
                     // Base styling: light background, dark text, border layer
                     "bg-muted text-muted-foreground border-2 border-background ring-1 ring-border shadow-sm",
