@@ -303,11 +303,19 @@ export function ChatInterface() {
                                 msg.user_id === userId ? "items-end" : "items-start",
                                 "max-w-[80%]"
                             )}>
-                                {/* Reply Context */}
+                                {/* Reply Context - Shows what message THIS message is replying to */}
                                 {msg.reply_message && (
-                                    <div className="mb-1 text-xs text-muted-foreground flex items-center gap-1 bg-muted/30 px-2 py-1 rounded-md border-l-2 border-primary/50 max-w-full truncate">
-                                        <span className="font-semibold shrink-0">@{msg.reply_message.profiles.username}:</span>
-                                        <span className="truncate opacity-80">{msg.reply_message.content}</span>
+                                    <div className={cn(
+                                        "mb-1 text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-lg border-l-2 border-primary/50 max-w-full",
+                                        msg.user_id === userId ? "ml-auto" : "mr-auto"
+                                    )}>
+                                        <Reply className="h-3 w-3 shrink-0 opacity-60" />
+                                        <div className="flex items-center gap-1 min-w-0">
+                                            <span className="shrink-0 opacity-70">Replying to</span>
+                                            <span className="font-semibold shrink-0">@{msg.reply_message.profiles.username}</span>
+                                            <span className="opacity-50 shrink-0">•</span>
+                                            <span className="truncate opacity-70 italic">&quot;{msg.reply_message.content}&quot;</span>
+                                        </div>
                                     </div>
                                 )}
 

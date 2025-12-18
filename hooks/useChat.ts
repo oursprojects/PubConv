@@ -47,6 +47,13 @@ export function useChat() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }, []);
 
+    // Helper to sort messages by created_at to ensure correct order
+    const sortMessages = useCallback((msgs: Message[]): Message[] => {
+        return [...msgs].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+    }, []);
+
     const handleUserRemoved = useCallback((reason: 'banned' | 'deleted') => {
         if (reason === 'banned') {
             router.push('/login?reason=banned');
@@ -56,16 +63,12 @@ export function useChat() {
     }, [router]);
 
     const fetchMessages = useCallback(async () => {
+        // Fetch messages without the self-join (which returns wrong direction)
         const { data: initialMessages, error } = await supabase
             .from('messages')
             .select(`
                 *,
-                profiles(username, avatar_url, role),
-                reply_message:messages!reply_to_id(
-                    content,
-                    user_id,
-                    profiles(username)
-                )
+                profiles(username, avatar_url, role)
             `)
             .order('created_at', { ascending: false })
             .limit(50);
@@ -79,7 +82,10 @@ export function useChat() {
             // Reverse to display in chronological order (oldest first)
             const messagesInOrder = [...initialMessages].reverse();
 
+            // Build a map of message id -> message for quick lookup
+            const messageMap = new Map<string, typeof messagesInOrder[0]>();
             messagesInOrder.forEach((msg: any) => {
+                messageMap.set(msg.id, msg);
                 if (msg.profiles && msg.user_id) {
                     profileCache.current.set(msg.user_id, {
                         username: msg.profiles.username,
@@ -88,17 +94,35 @@ export function useChat() {
                     });
                 }
             });
-            // Supabase returns array or object for relations depending on 1:1 or 1:N.
-            // With !reply_to_id it might be single object.
-            const formattedMessages = messagesInOrder.map((msg: any) => ({
-                ...msg,
-                reply_message: Array.isArray(msg.reply_message) ? msg.reply_message[0] : msg.reply_message
-            }));
 
-            setMessages(formattedMessages as Message[]);
+            // Build reply_message by looking up the parent message (the one this message is replying TO)
+            const formattedMessages = messagesInOrder.map((msg: any) => {
+                let reply_message = undefined;
+
+                // If this message has reply_to_id, find the parent message it's replying to
+                if (msg.reply_to_id) {
+                    const parentMsg = messageMap.get(msg.reply_to_id);
+                    if (parentMsg) {
+                        reply_message = {
+                            content: parentMsg.content,
+                            user_id: parentMsg.user_id,
+                            profiles: {
+                                username: parentMsg.profiles?.username || 'Unknown'
+                            }
+                        };
+                    }
+                }
+
+                return {
+                    ...msg,
+                    reply_message
+                };
+            });
+
+            setMessages(sortMessages(formattedMessages as Message[]));
             scrollToBottom();
         }
-    }, [supabase, scrollToBottom]);
+    }, [supabase, scrollToBottom, sortMessages]);
 
     // Initialize realtime connection
     useEffect(() => {
@@ -169,7 +193,11 @@ export function useChat() {
                             // Skip if already exists or is own message
                             if (current.some(m => m.id === msg.id)) return current;
                             if (msg.user_id === currentUserId) return current;
-                            return [...current, msg];
+                            // Sort after adding to ensure correct chronological order
+                            const updated = [...current, msg];
+                            return updated.sort((a, b) =>
+                                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                            );
                         });
                         scrollToBottom();
                     }
@@ -329,7 +357,13 @@ export function useChat() {
             isPending: true
         };
 
-        setMessages(prev => [...prev, optimisticMessage]);
+        // Sort after adding to ensure correct chronological order
+        setMessages(prev => {
+            const updated = [...prev, optimisticMessage];
+            return updated.sort((a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+        });
         scrollToBottom();
 
         const { data, error } = await supabase
@@ -377,9 +411,13 @@ export function useChat() {
                 isPending: false
             };
 
-            setMessages(prev => prev.map(m =>
-                m.id === tempId ? realMessage : m
-            ));
+            // Sort after updating to maintain chronological order
+            setMessages(prev => {
+                const updated = prev.map(m => m.id === tempId ? realMessage : m);
+                return updated.sort((a, b) =>
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+            });
 
             // BROADCAST to other clients (instant!)
             if (channelRef.current) {
