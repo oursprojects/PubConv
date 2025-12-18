@@ -110,6 +110,11 @@ export function ChatInterface() {
         setShowMentions(false);
         setReplyingTo(null);
 
+        // Reset textarea height after sending
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+        }
+
         if (rateLimit > 0) {
             setCooldown(rateLimit);
         }
@@ -364,7 +369,7 @@ export function ChatInterface() {
 
                                     {/* Message Bubble */}
                                     <div className={cn(
-                                        "px-3 py-1.5 text-sm rounded-2xl relative border-2 shadow-sm min-w-[80px]",
+                                        "px-3 py-1.5 text-sm rounded-2xl relative border-2 shadow-sm",
                                         msg.user_id === userId
                                             ? "bg-primary text-primary-foreground border-primary/30"
                                             : "bg-muted text-foreground border-border"
