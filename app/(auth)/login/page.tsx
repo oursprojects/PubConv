@@ -14,7 +14,7 @@ export default function LoginPage({
 }) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background relative px-4">
-            <div className="absolute top-3 right-3 flex items-center gap-2">
+            <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 flex items-center gap-2">
                 <InstallPWA />
                 <ModeToggle />
             </div>
