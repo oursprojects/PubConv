@@ -1,0 +1,120 @@
+DEPLOYMENT & GITHUB CONNECTION GUIDE
+====================================
+
+PART 1: CONNECTING VS CODE TO GITHUB
+------------------------------------
+Since you already have a repository initialized, here is how to manage it directly from VS Code.
+
+Prerequisites:
+- Git installed on your computer.
+- A GitHub account.
+- SSH keys set up (which we did in a previous step).
+
+Method 1: Using VS Code Terminal (Recommended)
+1. Open VS Code Terminal (Ctrl + `).
+2. Check if your remote is connected:
+   git remote -v
+   (You should see 'origin' pointing to your repository, e.g., git@github.com:oursprojects/CapsConv.git)
+
+3. If not connected, add the remote:
+   git remote add origin git@github.com:your-username/your-repo-name.git
+
+4. To save your changes (Staging & Committing):
+   git add .
+   git commit -m "Your message here (e.g., Updated login page design)"
+
+5. To send to GitHub (Pushing):
+   git push -u origin main
+
+Method 2: Using VS Code Source Control (GUI)
+1. Click the "Source Control" icon on the left sidebar (looks like a graph/branch).
+2. You will seem a list of "Changes".
+3. Hover over the word "Changes" and click the "+" icon to Stage All Changes (equivalent to `git add .`).
+4. Type a message in the "Message" box above.
+5. Click the "Commit" button (blue checkmark or 'Commit').
+6. Click "Sync Changes" or the loop icon at the bottom left status bar to Push to GitHub.
+
+TROUBLESHOOTING: CHANGING REPOSITORY URL
+----------------------------------------
+If you want to switch your project to a different GitHub repository:
+1. Open Terminal.
+2. Run this command:
+   git remote set-url origin git@github.com:your-username/new-repo-name.git
+3. Verify the change:
+   git remote -v
+
+
+PART 2: ENVIRONMENT VARIABLES (THE ENVIRONMENT)
+-----------------------------------------------
+Your application relies on sensitive data (API keys, database URLs) to function. These are stored in "Environment Variables".
+
+1. Local Development (.env.local)
+   - You currently use a file named `.env.local` in your project root.
+   - This file contains secrets like:
+     NEXT_PUBLIC_SUPABASE_URL=...
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+     SUPABASE_SERVICE_ROLE_KEY=...
+   
+   IMPORTANT: This file is ignored by Git (via .gitignore) so your secrets are NOT uploaded to the public GitHub repository. This is a security best practice.
+
+2. Deployment (Production)
+   - When you deploy your app to a hosting provider (like Vercel), you cannot upload the `.env.local` file.
+   - Instead, you must manually enter these variables in your hosting dashboard.
+
+   Example for Vercel:
+   a. Go to your Project Settings.
+   b. Find "Environment Variables".
+   c. Add the same keys and values found in your local `.env.local` file.
+      Key: NEXT_PUBLIC_SUPABASE_URL
+      Value: https://your-project.supabase.co
+      (Repeat for all other variables)
+
+3. Common Variables you likely need:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY
+   - NEXT_PUBLIC_SITE_URL (Deployment URL)
+
+------------------------------------
+QUICK DEPLOYMENT CHECKLIST
+[ ] Code committed and pushed to GitHub main branch.
+[ ] Hosting project connected to GitHub repository.
+[ ] Environment variables added to hosting project settings.
+[ ] Build command set to `npm run build` or `next build`.
+[ ] Install command set to `npm install`.
+
+PART 3: SETTING UP GOOGLE RECAPTCHA
+-----------------------------------
+To protect your forms from spam, you need to set up Google reCAPTCHA v3.
+
+1. Go to the Admin Console:
+   https://www.google.com/recaptcha/admin
+
+2. Create a New Site (+ button):
+   - Label: PubConv (or any name you recognize)
+   - reCAPTCHA type: **Score based (v3)**
+   - Domains: 
+     - Add `localhost` (for local development)
+     - Add `127.0.0.1` (also for local)
+     - Add your production domain later (e.g., `pubconv.vercel.app`)
+
+3. Owners:
+   - Your email should already be there. Add others if needed.
+
+4. Submit:
+   - Accept the Terms of Service.
+   - Click "Submit".
+
+5. Get Your Keys:
+   - You will see a **Site Key** and a **Secret Key**.
+   - Copy these keys.
+
+6. Add to Environment Variables:
+   - In your `.env.local` file (development):
+     NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key_here
+     RECAPTCHA_SECRET_KEY=your_secret_key_here
+   
+   - In your Production Deployment (e.g., Vercel):
+     Add the same keys to the Project Settings > Environment Variables.
+
+IMPORTANT: Ensure you selected **v3**. Version 2 keys will NOT work with this implementation.

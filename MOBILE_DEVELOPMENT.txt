@@ -1,0 +1,49 @@
+MOBILE APPLICATION DEVELOPMENT GUIDE
+===================================
+
+This document explains how to make code changes and rebuild the Android mobile application.
+
+1. BRANCHING STRATEGY
+---------------------
+- 'main' branch: Contains the full web application (Server Actions, Middleware, Admin Dashboard).
+- 'mobile' branch: Contains the static version for Android (Client-side only, No Middleware, No Admin).
+
+ALWAYS make sure you are on the 'mobile' branch when working on the Android app:
+  git checkout mobile
+
+2. MAKING CHANGES
+-----------------
+When you modify code in the 'mobile' branch:
+- Do NOT use Next.js Server Actions. Use the client-side Supabase functions we created in `lib/auth-client.ts`, `lib/profile-client.ts`, etc.
+- Do NOT use Middleware. It has been disabled (renamed to middleware.ts.bak) because static exports do not support it.
+- Do NOT use server-side `cookies()` or `headers()`. Use `supabase.auth.getUser()` in `useEffect` hooks.
+
+3. BUILDING THE UPDATE
+----------------------
+After making your code changes, follow these 3 steps to update the Android app:
+
+Step 1: Rebuild the static site
+  npm run build
+
+Step 2: Sync the new build to the Android project
+  npx cap sync
+
+Step 3: Open Android Studio (to build APK or run on emulator)
+  npx cap open android
+
+IN ANDROID STUDIO:
+- Wait for Gradle Sync to finish.
+- To run on Emulator: Click the "Run" (green play) button.
+- To build APK: Go to "Build" > "Build Bundle(s) / APK(s)" > "Build APK(s)".
+
+4. IMPORTANT NOTES
+------------------
+- If you merge changes from 'main' into 'mobile', be careful! `middleware.ts` might reappear. You must DELETE or RENAME `middleware.ts` to `middleware.ts.bak` before building the mobile app, or the build will fail.
+- The Admin Dashboard is disabled in this build.
+- Authentication uses a special Supabase Edge Function for reCAPTCHA, separate from the web app's server actions.
+
+5. TROUBLESHOOTING
+------------------
+- **UI Content Under Status Bar**: We added `overlaysWebView: false` to `capacitor.config.ts`. If you want it transparent, set it to `true` and ensure `body { padding-top: env(safe-area-inset-top); }` is working.
+- **Missing reCAPTCHA**: Google reCAPTCHA v2 requires domain whitelisting. Go to Google Cloud Console > reCAPTCHA and add `localhost` and `127.0.0.1` to the allowed domains.
+- **App Icon**: Replace the `mipmap` icons in `android/app/src/main/res/` manually, or use a tool like `@capacitor/assets` to generate them from `resources/icon.png`.
