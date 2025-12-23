@@ -1,16 +1,9 @@
 {
 	"appId": "com.pubconv.app",
 	"appName": "PubConv",
-	"webDir": "out",
-	"plugins": {
-		"StatusBar": {
-			"style": "DARK",
-			"overlaysWebView": true,
-			"backgroundColor": "#ffffffff"
-		},
-		"SplashScreen": {
-			"launchShowDuration": 0,
-			"launchAutoHide": true
-		}
+	"webDir": "public",
+	"server": {
+		"url": "https://pubconv.vercel.app",
+		"androidScheme": "https"
 	}
 }

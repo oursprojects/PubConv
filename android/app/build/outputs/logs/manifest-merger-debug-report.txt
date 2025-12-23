@@ -11,10 +11,10 @@ INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\A
 	android:name
 		ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:24:13-62
 manifest
-ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-35:12
-INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-35:12
-INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-35:12
-INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-35:12
+ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-36:12
+INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-36:12
+INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-36:12
+INJECTED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:2:1-36:12
 MERGED from [:capacitor-android] C:\Users\Mike Ryno Santiago\Desktop\PubConv\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-7:12
 MERGED from [:capacitor-cordova-android-plugins] C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\capacitor-cordova-android-plugins\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-11:12
 MERGED from [org.apache.cordova:framework:14.0.1] C:\Users\Mike Ryno Santiago\.gradle\caches\8.14.3\transforms\e47013dec160bb8e8e78795049f410c2\transformed\framework-14.0.1\AndroidManifest.xml:20:1-27:12
@@ -120,6 +120,10 @@ uses-permission#android.permission.INTERNET
 ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:34:5-67
 	android:name
 		ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:34:22-64
+uses-permission#android.permission.VIBRATE
+ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:35:5-66
+	android:name
+		ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:35:22-63
 meta-data#android.support.FILE_PROVIDER_PATHS
 ADDED from C:\Users\Mike Ryno Santiago\Desktop\PubConv\android\app\src\main\AndroidManifest.xml:28:13-112
 	android:resource

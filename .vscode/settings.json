@@ -1,5 +1,6 @@
 {
     "css.validate": false,
     "scss.validate": false,
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { MaintenanceListener } from "@/components/system/MaintenanceListener";
 import { ThemeSync } from "@/components/system/ThemeSync";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
+import { MobileNativeProvider } from "@/components/providers/MobileNativeProvider";
 
 import { SplashScreen } from "@/components/ui/splash-screen";
 
@@ -64,8 +65,10 @@ export default function RootLayout({
           <TransitionProvider>
             <ThemeSync />
             {children}
-            <Toaster position="top-center" />
+            {/* Positioned at top-center but pushed down to avoid header/status bar on mobile */}
+            <Toaster position="top-center" toastOptions={{ className: "mt-[calc(env(safe-area-inset-top)+85px)]" }} />
             <MaintenanceListener />
+            <MobileNativeProvider />
           </TransitionProvider>
           <SplashScreen />
         </ThemeProvider>
