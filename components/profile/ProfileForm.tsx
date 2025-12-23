@@ -31,6 +31,13 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
     const [selectedFile, setSelectedFile] = useState<Blob | null>(null);
     const [loading, setLoading] = useState(false);
 
+    // Controlled inputs for tracking changes
+    const [bio, setBio] = useState(profile?.bio || "");
+    const [initialBio, setInitialBio] = useState(profile?.bio || "");
+
+    // Is Dirty Calculation
+    const isDirty = (bio !== initialBio) || (selectedFile !== null);
+
     // Cooldown Calculation
     const lastUpdate = profile?.last_avatar_update ? new Date(profile.last_avatar_update) : null;
     const now = new Date();
@@ -80,8 +87,7 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
         setMessage(null);
         setLoading(true);
 
-        const formData = new FormData(e.currentTarget);
-        const bio = formData.get('bio') as string;
+        // Use state bio instead of formData
         const avatarFile = selectedFile ? new File([selectedFile], 'avatar.webp', { type: 'image/webp' }) : null;
 
         const res = await updateProfileClient(bio, avatarFile);
@@ -91,7 +97,16 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
             setMessage({ type: 'error', text: res.error });
         } else if (res?.success) {
             setMessage({ type: 'success', text: "Profile updated successfully!" });
-            router.refresh();
+
+            // Update initial state to match current, so button disables again
+            setInitialBio(bio);
+            setSelectedFile(null);
+
+            // Don't full refresh to avoid "reloading" feel. 
+            // We just updated local state, which is good enough for now. 
+            // If we needed to update the header avatar, we might need a context update or router.refresh() 
+            // but user specifically asked to fix "reloading" feeling.
+            // router.refresh(); 
         }
     }
 
@@ -105,7 +120,8 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
         } else {
             setMessage({ type: 'success', text: "Avatar removed." });
             setPreviewUrl(null);
-            router.refresh();
+            setSelectedFile(null);
+            // router.refresh(); // Avoid refresh
         }
     }
 
@@ -207,7 +223,8 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
                         <Input
                             id="bio"
                             name="bio"
-                            defaultValue={profile?.bio || ""}
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
                             placeholder="Tell us about yourself..."
                         />
                     </div>
@@ -219,7 +236,7 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
                     </p>
                 )}
 
-                <AnimatedButton type="submit" disabled={loading} className="w-full sm:w-auto gap-2">
+                <AnimatedButton type="submit" disabled={loading || !isDirty} className="w-full sm:w-auto gap-2">
                     {loading ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -232,7 +249,7 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
                         </>
                     ) : (
                         <>
-                            <Save className="h-4 w-4" />
+                            <Save className={!isDirty ? "h-4 w-4 opacity-50" : "h-4 w-4"} />
                             Save Changes
                         </>
                     )}

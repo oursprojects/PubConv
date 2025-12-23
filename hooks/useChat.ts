@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
+import { get, set } from 'idb-keyval'
+import { Network } from '@capacitor/network'
 
 export type Message = {
     id: string
@@ -67,6 +69,24 @@ export function useChat() {
         }
     }, [router]);
 
+    // Load from IDB on mount
+    useEffect(() => {
+        const loadCachedMessages = async () => {
+            const cached = await get<Message[]>('chat_messages');
+            if (cached) {
+                setMessages(sortMessages(cached));
+            }
+        };
+        loadCachedMessages();
+    }, [sortMessages]);
+
+    // Save to IDB whenever messages change (debounce slightly if needed, but here direct is okay for now)
+    useEffect(() => {
+        if (messages.length > 0) {
+            set('chat_messages', messages);
+        }
+    }, [messages]);
+
     const fetchMessages = useCallback(async () => {
         // Fetch messages without the self-join (which returns wrong direction)
         const { data: initialMessages, error } = await supabase
@@ -80,6 +100,7 @@ export function useChat() {
 
         if (error) {
             console.error('Error fetching messages:', error);
+            // Don't clear messages on error, just keep cached ones
             return;
         }
 
@@ -124,7 +145,13 @@ export function useChat() {
                 };
             });
 
-            setMessages(sortMessages(formattedMessages as Message[]));
+            // Merge with local queue if needed, but for now just set
+            setMessages(prev => {
+                // Keep pending messages that are not yet in the fetched list
+                const pending = prev.filter(m => m.isPending);
+                const uniqueFormatted = formattedMessages.filter(m => !pending.some(p => p.id === m.id));
+                return sortMessages([...uniqueFormatted, ...pending] as Message[]);
+            });
             scrollToBottom();
 
             // If we successfully fetched messages, we have internet access. 
@@ -156,23 +183,33 @@ export function useChat() {
         let currentUserId: string | null = null;
 
         const init = async () => {
-            // 1. Get User
-            const { data: { user } } = await supabase.auth.getUser();
+            // 1. Get User Session (works offline if cached)
+            const { data: { session } } = await supabase.auth.getSession();
             if (!isMounted) return;
 
-            currentUserId = user?.id ?? null;
-            setUserId(currentUserId);
+            if (session?.user) {
+                currentUserId = session.user.id;
+                setUserId(currentUserId);
 
-            if (user) {
+                // Optimistically try to get profile from cache or IDB if needed, 
+                // but for now we try to fetch if online. 
+                // If offline, we might miss the username until reconnect.
+                // TODO: Store profile in IDB too.
+
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('username, role, avatar_url, is_banned')
-                    .eq('id', user.id)
+                    .eq('id', session.user.id)
                     .single();
 
                 if (error && error.code === 'PGRST116') {
+                    // Profile deleted?
+                    // Only redirect if we are SURE it's not a network error. 
+                    // PGRST116 is specific "no rows".
                     handleUserRemoved('deleted');
                     return;
+                } else if (!data && !error) {
+                    // Network error likely?
                 }
 
                 if (isMounted && data) {
@@ -186,15 +223,22 @@ export function useChat() {
                     currentAvatar = data.avatar_url || null;
                     setUsername(currentUsername);
 
-                    profileCache.current.set(user.id, {
+                    profileCache.current.set(session.user.id, {
                         username: currentUsername,
                         avatar_url: currentAvatar,
                         role: currentRole
                     });
                 }
+            } else {
+                // No session found? Then we can redirect to login.
+                // But wait, what if we are offline and session expired? 
+                // getSession should return null if no token.
+                // If offline, we might want to stay on the page but disabled?
+                // For now, if no local session, we must login.
+                // router.push('/login'); // Let the page component handle this check or leave it
             }
 
-            // 2. Fetch Messages
+            // 2. Fetch Messages (will fail if offline, but that's handled)
             await fetchMessages();
 
             // 3. Create ONE channel for everything (presence + broadcast)
@@ -214,8 +258,8 @@ export function useChat() {
                     if (isMounted && msg) {
                         setMessages((current) => {
                             // Skip if already exists or is own message
-                            if (current.some(m => m.id === msg.id)) return current;
-                            if (msg.user_id === currentUserId) return current;
+                            if (current.some(m => m.id === msg.id && !m.isPending)) return current;
+                            if (msg.user_id === currentUserId) return current; // We handle our own optimistically
                             // Sort after adding to ensure correct chronological order
                             const updated = [...current, msg];
                             return updated.sort((a, b) =>
@@ -361,12 +405,124 @@ export function useChat() {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
+    // Reconnect function - triggers re-initialization by forcing component remount
+    const reconnect = useCallback(async () => {
+        setConnectionStatus('connecting');
+        if (channelRef.current) {
+            await supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
+        // Force effect re-run by updating retryCount
+        setRetryCount(prev => prev + 1);
+    }, [supabase]);
+
+    // Flush queue function
+    const flushQueue = useCallback(async () => {
+        const queue = await get<Message[]>('message_queue') || [];
+        if (queue.length === 0) return;
+
+        console.log('Flushing offline queue:', queue.length, 'messages');
+        const queueCopy = [...queue];
+        // Clear queue immediately to avoid double send (if failed, we re-add)
+        await set('message_queue', []);
+
+        for (const msg of queueCopy) {
+            // Try sending
+            // Haptic feedback for send action (light impact)
+            try {
+                // If it's a real call, we can call sendMessage? 
+                // But sendMessage adds to state. We already have it in state?
+                // Ideally, we just call the API.
+
+                const { data, error } = await supabase
+                    .from('messages')
+                    .insert({
+                        content: msg.content,
+                        user_id: msg.user_id,
+                        reply_to_id: msg.reply_to_id
+                    })
+                    .select('id, created_at')
+                    .single();
+
+                if (error) {
+                    // Failed again, put back in queue?
+                    console.error('Failed to flush message:', msg.id, error);
+                    const currentQueue = await get<Message[]>('message_queue') || [];
+                    await set('message_queue', [...currentQueue, msg]);
+
+                    // Update UI to failed
+                    setMessages(prev => prev.map(m =>
+                        m.id === msg.id ? { ...m, status: 'failed' } : m
+                    ));
+
+                } else {
+                    // Success!
+                    // Update local message with real ID and sent status
+                    const realMessage: Message = { ...msg, id: data.id, created_at: data.created_at, isPending: false, status: 'sent' };
+
+                    setMessages(prev => {
+                        const updated = prev.map(m => m.id === msg.id ? realMessage : m);
+                        return sortMessages(updated);
+                    });
+
+                    // BROADCAST to other clients
+                    if (channelRef.current) {
+                        channelRef.current.send({
+                            type: 'broadcast',
+                            event: 'new_message',
+                            payload: realMessage
+                        });
+                    }
+                }
+
+            } catch (e) {
+                // Push back
+                const currentQueue = await get<Message[]>('message_queue') || [];
+                await set('message_queue', [...currentQueue, msg]);
+            }
+        }
+    }, [supabase, channelRef, sortMessages]);
+
+    // Network Listener for auto-flush
+    useEffect(() => {
+        let handle: any;
+        const setupListener = async () => {
+            // Initial check
+            const status = await Network.getStatus();
+            if (status.connected) flushQueue();
+
+            handle = await Network.addListener('networkStatusChange', status => {
+                if (status.connected) {
+                    setConnectionStatus('connected');
+                    flushQueue();
+                    reconnect();
+                } else {
+                    setConnectionStatus('disconnected');
+                }
+            });
+        };
+        setupListener();
+        return () => {
+            if (handle) handle.remove();
+        }
+    }, [flushQueue, reconnect]);
+
+
     // Send message with optimistic UI + broadcast
     const sendMessage = async (content: string, replyTo?: Message) => {
         if (!content.trim()) return;
+
+        // If no user check, assume guest or error, but don't redirect if just offline?
+        // If we have userId, we are good.
         if (!userId) {
-            router.push('/login');
-            return;
+            // Verify if we really are logged out
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+            // If we have session but userId state is null (race condition?), recover it
+            setUserId(session.user.id);
         }
 
         const tempId = 'temp-' + Date.now();
@@ -376,11 +532,11 @@ export function useChat() {
         const optimisticMessage: Message = {
             id: tempId,
             content: trimmedContent,
-            user_id: userId,
+            user_id: userId!,
             created_at: now,
             profiles: {
                 username: username || 'You',
-                avatar_url: profileCache.current.get(userId)?.avatar_url || '',
+                avatar_url: profileCache.current.get(userId!)?.avatar_url || '',
                 role: role
             },
             reply_to_id: replyTo?.id,
@@ -398,9 +554,7 @@ export function useChat() {
         // Sort after adding to ensure correct chronological order
         setMessages(prev => {
             const updated = [...prev, optimisticMessage];
-            return updated.sort((a, b) =>
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
+            return sortMessages(updated);
         });
         scrollToBottom();
 
@@ -414,6 +568,18 @@ export function useChat() {
             // Ignore haptic errors on web
         }
 
+        // Check network status first
+        const status = await Network.getStatus();
+
+        if (!status.connected) {
+            // OFFLINE MODE: Queue it
+            const queue = await get<Message[]>('message_queue') || [];
+            await set('message_queue', [...queue, optimisticMessage]);
+            // Update UI to show it's queued/sending (already 'sending')
+            return; // Done for now
+        }
+
+        // ONLINE: Try sending
         const { data, error } = await supabase
             .from('messages')
             .insert({
@@ -427,49 +593,35 @@ export function useChat() {
         if (error) {
             console.error('❌ Error sending message:', error);
 
-            // Mark as failed instead of removing
-            setMessages(prev => prev.map(m =>
-                m.id === tempId ? { ...m, isPending: false, status: 'failed' } : m
-            ));
+            // Error -> Add to Queue for retry or mark failed?
+            // If it's a network error, queue it.
+            // If it's permission/ban, fail it.
+            if (error.message.includes('fetch') || error.message.includes('network')) {
+                const queue = await get<Message[]>('message_queue') || [];
+                await set('message_queue', [...queue, optimisticMessage]);
+                // Keep status as 'sending' ideally? Or 'failed' with retry.
+                // Let's keep 'sending' if we auto-queue.
+            } else {
+                // Mark as failed
+                setMessages(prev => prev.map(m =>
+                    m.id === tempId ? { ...m, isPending: false, status: 'failed' } : m
+                ));
+                try {
+                    await Haptics.notification({ type: NotificationType.Error });
+                } catch (e) { }
 
-            // Haptic error notification
-            try {
-                await Haptics.notification({ type: NotificationType.Error });
-            } catch (e) { }
-
-            if (error.message.includes('banned')) {
-                handleUserRemoved('banned');
+                if (error.message.includes('banned')) {
+                    handleUserRemoved('banned');
+                }
             }
         } else if (data) {
             // Update local message with real ID and sent status
-            const realMessage: Message = {
-                id: data.id,
-                content: trimmedContent,
-                user_id: userId,
-                created_at: data.created_at,
-                profiles: {
-                    username: username || 'You',
-                    avatar_url: profileCache.current.get(userId)?.avatar_url || '',
-                    role: role
-                },
-                reply_to_id: replyTo?.id,
-                reply_message: replyTo ? {
-                    content: replyTo.content,
-                    user_id: replyTo.user_id,
-                    profiles: {
-                        username: replyTo.profiles.username
-                    }
-                } : undefined,
-                isPending: false,
-                status: 'sent'
-            };
+            const realMessage: Message = { ...optimisticMessage, id: data.id, created_at: data.created_at, isPending: false, status: 'sent' };
 
             // Sort after updating to maintain chronological order
             setMessages(prev => {
                 const updated = prev.map(m => m.id === tempId ? realMessage : m);
-                return updated.sort((a, b) =>
-                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                );
+                return sortMessages(updated);
             });
 
             // BROADCAST to other clients
@@ -611,17 +763,6 @@ export function useChat() {
             }
         }
     };
-
-    // Reconnect function - triggers re-initialization by forcing component remount
-    const reconnect = useCallback(async () => {
-        setConnectionStatus('connecting');
-        if (channelRef.current) {
-            await supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-        }
-        // Force effect re-run by updating retryCount
-        setRetryCount(prev => prev + 1);
-    }, [supabase]);
 
     // Retry failed message
     const retryMessage = useCallback(async (msg: Message) => {

@@ -14,6 +14,11 @@ const config: CapacitorConfig = {
       launchShowDuration: 0,
       launchAutoHide: true,
     },
+    Keyboard: {
+      resize: 'body',
+      style: 'DARK',
+      resizeOnFullScreen: true,
+    },
   },
 };
 

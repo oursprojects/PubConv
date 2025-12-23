@@ -45,3 +45,8 @@ android/
 android/.gradle
 android/local.properties
 android/captures
+
+# iOS
+ios/
+ios/App/App/public
+

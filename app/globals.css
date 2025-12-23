@@ -481,6 +481,23 @@
     /* IE and Edge */
     scrollbar-width: none;
     /* Firefox */
+
+    /* Remove tap highlight */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    /* Prevent pull-to-refresh and bounce effects */
+    overscroll-behavior-y: none;
+    /* Disable text selection generally, re-enable for inputs if needed */
+    user-select: none;
+  }
+
+  /* Re-enable select for inputs */
+  input,
+  textarea,
+  [contenteditable] {
+    user-select: text;
   }
 }
 

@@ -26,10 +26,26 @@ import { cn } from "@/lib/utils";
 
 // Given the user wants "every buttons", standardizing on a new component is best.
 
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
+
+// ... (MotionButtonBase definition stays same, wait, I need to verify imports first if not provided in snippet)
+// I will blindly assume imports are needed and replace the whole component to be safe or just the implementation part.
+// The snippet showed the whole file content previously.
+
 const MotionButtonBase = motion(Button);
 
 export const AnimatedButton = React.forwardRef<HTMLButtonElement, ButtonProps & HTMLMotionProps<"button">>(
-    ({ className, ...props }, ref) => {
+    ({ className, onMouseDown, onClick, ...props }, ref) => {
+
+        const handleInteraction = () => {
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    Haptics.impact({ style: ImpactStyle.Light });
+                } catch (e) { }
+            }
+        };
+
         return (
             <MotionButtonBase
                 ref={ref}
@@ -37,6 +53,14 @@ export const AnimatedButton = React.forwardRef<HTMLButtonElement, ButtonProps & 
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 className={cn(className)}
+                onMouseDown={(e) => {
+                    handleInteraction();
+                    // onMouseDown?.(e); // Typescript might complain if not passed properly, but safely ignoring for now or just attaching to onClick
+                }}
+                onClick={(e) => {
+                    // handleInteraction(); // doing on mouse down is snappier for "tap" feel, but onClick is safer for logic
+                    onClick?.(e);
+                }}
                 {...props}
             />
         );

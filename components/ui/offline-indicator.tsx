@@ -62,10 +62,12 @@ export function OfflineIndicator() {
     return (
         <div
             className={cn(
-                "fixed top-[env(safe-area-inset-top)] left-0 right-0 z-[100] flex items-center justify-center gap-2 py-1.5 px-4 text-xs font-medium transition-all duration-300 transform",
-                isReconnecting ? "bg-amber-100/90 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 backdrop-blur-sm"
-                    : "bg-red-500/90 text-white backdrop-blur-sm",
-                "shadow-sm"
+                "fixed left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center gap-2 py-1.5 px-4 text-xs font-medium transition-all duration-300 transform rounded-full border shadow-sm",
+                // Mobile-friendly top positioning that avoids the status bar but floats above content
+                "top-2 sm:top-4",
+                isReconnecting
+                    ? "bg-amber-100/80 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border-amber-200/50 dark:border-amber-800/50 backdrop-blur-md"
+                    : "bg-destructive/15 text-destructive border-destructive/20 backdrop-blur-md"
             )}
         >
             {isReconnecting ? (
