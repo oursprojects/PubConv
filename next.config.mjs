@@ -11,7 +11,7 @@ const nextConfig = {
     webpack: (config) => {
         // On web/Vercel, replace all @capacitor/* imports with a stub file.
         // On Android (Capacitor WebView), the real native packages are used at runtime.
-        const stub = path.resolve(__dirname, "lib/capacitor-stubs.js");
+        const stub = path.resolve(__dirname, "lib/capacitor-stubs.ts");
 
         config.resolve.alias = {
             ...config.resolve.alias,
