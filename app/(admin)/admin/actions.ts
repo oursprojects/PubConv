@@ -141,7 +141,8 @@ export async function deleteFeedback(feedbackId: string) {
 export async function updateSystemConfig(key: string, value: boolean | number | string) {
     if (!await checkAdmin()) return { error: 'Unauthorized' }
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS (app_config has no user-level UPDATE policy)
+    const supabase = createAdminClient()
 
     console.log(`[AdminConfig] Updating ${key} to:`, value, typeof value);
 

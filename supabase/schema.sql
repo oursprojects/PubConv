@@ -45,16 +45,17 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- app_config: Global settings (maintenance mode, sign-up toggle, etc.)
+-- app_config: Global settings (maintenance mode, sign-up toggle, rate limit, etc.)
 CREATE TABLE IF NOT EXISTS app_config (
   key   text    PRIMARY KEY,
-  value boolean DEFAULT false
+  value text    DEFAULT 'false'  -- stored as text to support bool ('true'/'false') and numbers
 );
 
 -- Seed default config values
 INSERT INTO app_config (key, value) VALUES
-  ('maintenance_mode', false),
-  ('disable_signup',   false)
+  ('maintenance_mode', 'false'),
+  ('disable_signup',   'false'),
+  ('message_rate_limit', '0')
 ON CONFLICT (key) DO NOTHING;
 
 
@@ -109,6 +110,14 @@ ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Config is viewable by everyone." ON app_config
   FOR SELECT USING (true);
+
+-- Admins can update/insert config (enforced via service role in practice)
+CREATE POLICY "Admins can update config." ON app_config
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 
 -- ================================================================================
