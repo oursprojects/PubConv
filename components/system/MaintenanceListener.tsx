@@ -56,9 +56,8 @@ export function MaintenanceListener() {
             return;
         }
 
-        // Pages exempt from maintenance redirect
-        // Pages exempt from maintenance redirect (check for exact match or starting with /terms)
-        const isExemptPage = currentPath === '/login' || currentPath === '/maintenance' || currentPath === '/register' || currentPath?.startsWith('/terms');
+        // Pages exempt from maintenance redirect (login allowed for admin access)
+        const isExemptPage = currentPath === '/login' || currentPath === '/maintenance';
 
         // If maintenance is ON and NOT on an exempt page -> Redirect to /maintenance
         if (isMaintenance && !isExemptPage) {

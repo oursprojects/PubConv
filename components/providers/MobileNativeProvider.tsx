@@ -1,93 +1,75 @@
 "use client";
 
-import { useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { App } from '@capacitor/app';
-import { Network } from '@capacitor/network';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { useTheme } from 'next-themes';
-import { toast } from 'sonner';
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 export function MobileNativeProvider() {
-    const { message: theme } = useTheme() as any; // forceful cast if needed, or just useTheme
+    const lastConnectedRef = useRef<boolean>(true);
 
     useEffect(() => {
-        // Only run on native platforms
-        if (!Capacitor.isNativePlatform()) return;
+        let cleanup: (() => void) | undefined;
 
-        // 1. Handle Status Bar
-        const configureStatusBar = async () => {
+        const init = async () => {
+            // Dynamically import Capacitor so it is NEVER bundled into the web build
+            const { Capacitor } = await import("@capacitor/core");
+
+            if (!Capacitor.isNativePlatform()) return;
+
+            // 1. Status Bar
             try {
-                // Determine style based on system or theme (if accessible here, otherwise default to Dark for light mode content)
-                // For simplified "native" feel, transparent overlay is often best.
+                const { StatusBar, Style } = await import("@capacitor/status-bar");
                 await StatusBar.setOverlaysWebView({ overlay: true });
-                // We'll update style dynamically below
+                await StatusBar.setStyle({ style: Style.Dark });
             } catch (e) {
-                console.error("StatusBar error:", e);
+                console.error("Status bar error:", e);
+            }
+
+            // 2. Network Status (debounced / deduped)
+            try {
+                const { Network } = await import("@capacitor/network");
+
+                const status = await Network.getStatus();
+                lastConnectedRef.current = status.connected;
+
+                const handleNetworkStatusChange = (status: { connected: boolean }) => {
+                    if (status.connected === lastConnectedRef.current) return;
+
+                    toast.dismiss("network-status");
+
+                    if (status.connected) {
+                        toast.success("Back online", {
+                            id: "network-status",
+                            duration: 3000,
+                            icon: "wifi",
+                        });
+                    } else {
+                        toast.error("You are offline", {
+                            id: "network-status",
+                            duration: Infinity,
+                            icon: "wifi-off",
+                        });
+                    }
+
+                    lastConnectedRef.current = status.connected;
+                };
+
+                const listener = await Network.addListener(
+                    "networkStatusChange",
+                    handleNetworkStatusChange
+                );
+
+                cleanup = () => listener.remove();
+            } catch (e) {
+                console.error("Network error:", e);
             }
         };
 
-        configureStatusBar();
+        init();
 
-        // 2. Handle Back Button
-        const backListener = App.addListener('backButton', async (data) => {
-            if (window.location.pathname === '/' || window.location.pathname === '/login') {
-                // If on root or login, minimize app
-                App.minimizeApp();
-            } else {
-                // Otherwise navigate back
-                window.history.back();
-            }
-        });
-
-        // 3. Network Status
-        let lastConnected = true; // Assume online initially to avoid immediate "back online" if starting online
-
-        const networkListener = Network.addListener('networkStatusChange', status => {
-            // Deduplicate: only fire if status actually changed
-            if (status.connected === lastConnected) return;
-            lastConnected = status.connected;
-
-            // Dismiss any existing network toasts to prevent stacking
-            toast.dismiss('network-status');
-
-            if (!status.connected) {
-                Haptics.notification({ type: 'error' as any });
-                // Use ID to Replace existing toast
-                toast.error("You are offline.", { id: 'network-status', duration: 4000 });
-            } else {
-                // Use ID to Replace existing toast
-                toast.success("Back online!", { id: 'network-status', duration: 2000 });
-            }
-        });
-
-        // Cleanup
         return () => {
-            backListener.then(h => h.remove());
-            networkListener.then(h => h.remove());
+            cleanup?.();
         };
     }, []);
 
-    // Effect to sync Status Bar with Theme Change
-    // We need to access the actual resolved theme
-    const { resolvedTheme } = useTheme();
-
-    useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
-
-        const updateStatusBarStyle = async () => {
-            try {
-                if (resolvedTheme === 'dark') {
-                    await StatusBar.setStyle({ style: Style.Dark });
-                } else {
-                    await StatusBar.setStyle({ style: Style.Light });
-                }
-            } catch (e) { }
-        };
-
-        updateStatusBarStyle();
-    }, [resolvedTheme]);
-
-    return null; // This component renders nothing
+    return null;
 }

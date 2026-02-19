@@ -25,6 +25,24 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@capacitor/core": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/status-bar": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/network": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/app": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/haptics": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/keyboard": [
+        "./lib/capacitor-stubs.ts"
       ]
     }
   },
@@ -38,6 +56,6 @@
   ],
   "exclude": [
     "node_modules",
-    "supabase/functions"
+    "capacitor.config.ts"
   ]
 }

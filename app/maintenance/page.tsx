@@ -38,11 +38,9 @@ export default function MaintenancePage() {
         });
 
         channel
-            .on('broadcast', { event: 'maintenance_mode' }, (payload: any) => {
+            .on('broadcast', { event: 'maintenance_mode' }, (payload: { payload: { enabled: boolean } }) => {
                 console.log('🔧 Maintenance page received broadcast:', payload);
-                // Handle both direct payload and nested payload structures
-                const isEnabled = payload.payload?.enabled ?? payload.enabled;
-                if (!isEnabled) {
+                if (!payload.payload?.enabled) {
                     // Maintenance disabled, redirect back to where user was
                     console.log('🔧 Maintenance disabled, redirecting to:', returnTo);
                     router.push(returnTo);

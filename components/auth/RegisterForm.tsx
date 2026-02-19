@@ -1,5 +1,7 @@
 "use client";
 
+import { useFormStatus } from "react-dom";
+import { signup } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -9,9 +11,23 @@ import { Recaptcha, RecaptchaRef } from "./Recaptcha";
 import { WaveLoader } from "@/components/ui/wave-loader";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { signupClient } from "@/lib/auth-client";
+
+function SubmitButton({ disabled }: { disabled?: boolean }) {
+    const { pending } = useFormStatus();
+
+    return (
+        <Button type="submit" className="w-full rounded-xl bg-foreground text-background hover:bg-foreground/90" disabled={pending || disabled}>
+            {pending ? (
+                <>
+                    <WaveLoader className="mr-2 h-3" />
+                    Creating account...
+                </>
+            ) : (
+                "Register"
+            )}
+        </Button>
+    );
+}
 
 // Validation rule component
 function ValidationRule({ valid, text }: { valid: boolean; text: string }) {
@@ -56,8 +72,8 @@ function PasswordStrengthBar({ password }: { password: string }) {
                 ))}
             </div>
             <p className={`text-[10px] transition-colors ${strength.level === 1 ? 'text-red-500' :
-                strength.level === 2 ? 'text-yellow-600 dark:text-yellow-400' :
-                    'text-green-600 dark:text-green-400'
+                    strength.level === 2 ? 'text-yellow-600 dark:text-yellow-400' :
+                        'text-green-600 dark:text-green-400'
                 }`}>
                 {strength.label}
             </p>
@@ -67,12 +83,10 @@ function PasswordStrengthBar({ password }: { password: string }) {
 
 export function RegisterForm() {
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const recaptchaRef = useRef<RecaptchaRef>(null);
-    const router = useRouter();
 
     // Live validation rules (all client-side, no API calls = free)
     const validation = useMemo(() => {
@@ -89,8 +103,7 @@ export function RegisterForm() {
 
     const allValid = validation.usernameValid && validation.passwordLength && validation.passwordNotUsername && validation.passwordsMatch;
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+    async function handleSubmit(formData: FormData) {
         setError(null);
 
         // Get reCAPTCHA token
@@ -101,27 +114,22 @@ export function RegisterForm() {
             return;
         }
 
-        setLoading(true);
+        // Append token to form data
+        formData.append("recaptchaToken", recaptchaToken);
+
         toast.loading("Creating account...");
-
-        const res = await signupClient(username, password, confirmPassword, recaptchaToken);
-
+        const res = await signup(formData);
         toast.dismiss();
-        setLoading(false);
-
+        // If we get here, signup returned an error (success redirects server-side)
         if (res?.error) {
             setError(res.error);
             toast.error(res.error);
             recaptchaRef.current?.reset();
-        } else if (res?.success) {
-            toast.success("Account created successfully!");
-            router.push(res.redirect || '/');
-            router.refresh();
         }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="grid gap-2.5">
+        <form action={handleSubmit} className="grid gap-2.5">
             <div className="grid gap-1">
                 <Label htmlFor="username" className="text-xs">Username</Label>
                 <Input
@@ -186,7 +194,7 @@ export function RegisterForm() {
                 <Recaptcha ref={recaptchaRef} />
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start space-x-2">
                 <input
                     type="checkbox"
                     id="terms"
@@ -195,27 +203,15 @@ export function RegisterForm() {
                     className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 mt-0.5"
                 />
                 <label htmlFor="terms" className="text-[11px] text-muted-foreground leading-tight">
-                    I am 18+ and agree to the
+                    I am 18+ and agree to the{" "}
+                    <a href="/terms" target="_blank" className="text-primary hover:underline">
+                        Terms
+                    </a>
                 </label>
-                <span
-                    onClick={() => router.push('/terms')}
-                    className="text-[11px] text-primary hover:underline leading-tight cursor-pointer"
-                >
-                    Terms
-                </span>
             </div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}
-            <Button type="submit" className="w-full rounded-xl bg-foreground text-background hover:bg-foreground/90" disabled={loading || !allValid}>
-                {loading ? (
-                    <>
-                        <WaveLoader className="mr-2 h-3" />
-                        Creating account...
-                    </>
-                ) : (
-                    "Register"
-                )}
-            </Button>
+            <SubmitButton disabled={!allValid} />
         </form>
     );
 }

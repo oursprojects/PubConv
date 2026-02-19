@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Send, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-import { submitFeedbackClient } from "@/lib/profile-client";
+import { submitFeedback } from "./actions";
 
 export default function FeedbackPage() {
     const [submitted, setSubmitted] = useState(false);
@@ -44,7 +44,7 @@ export default function FeedbackPage() {
         const subject = formData.get('subject') as string;
         const message = formData.get('message') as string;
 
-        const result = await submitFeedbackClient(subject, message);
+        const result = await submitFeedback(formData);
 
         setLoading(false);
 

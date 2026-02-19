@@ -1,43 +1,21 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
-import { Ban, Construction, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Ban, Construction } from "lucide-react";
 
-export default function RegisterPage() {
-    const [disableSignup, setDisableSignup] = useState(false);
-    const [maintenanceMode, setMaintenanceMode] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const supabase = createClient();
+export default async function RegisterPage() {
+    const supabase = await createClient();
+    const { data: configs } = await supabase.from("app_config").select("*");
 
-    useEffect(() => {
-        async function loadConfig() {
-            const { data: configs } = await supabase.from("app_config").select("*");
+    const disableSignupValue = configs?.find((c) => c.key === "disable_signup")?.value;
+    const disableSignup = disableSignupValue === true || disableSignupValue === "true";
 
-            const disableSignupValue = configs?.find((c: any) => c.key === "disable_signup")?.value;
-            setDisableSignup(disableSignupValue === true || disableSignupValue === "true");
-
-            const maintenanceValue = configs?.find((c: any) => c.key === "maintenance_mode")?.value;
-            setMaintenanceMode(maintenanceValue === true || maintenanceValue === "true");
-
-            setLoading(false);
-        }
-        loadConfig();
-    }, [supabase]);
-
-    if (loading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background px-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
-    }
+    const maintenanceValue = configs?.find((c) => c.key === "maintenance_mode")?.value;
+    const maintenanceMode = maintenanceValue === true || maintenanceValue === "true";
 
     // Show maintenance message if maintenance mode is active
     if (maintenanceMode) {

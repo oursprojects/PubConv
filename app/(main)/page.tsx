@@ -1,10 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { Sparkles, Globe, Search, UserCircle, Send, CalendarDays, Info } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect, useState } from "react";
 
 const features = [
   {
@@ -46,31 +43,14 @@ const features = [
 ];
 
 function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  return "Good day";
 }
 
-export default function DashboardPage() {
-  const [displayName, setDisplayName] = useState("User");
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      const display = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
-      setDisplayName(display);
-      setLoading(false);
-    }
-    loadUser();
-  }, [supabase]);
-
-  // We can render the UI even with default "User" while loading, maybe?
-  // Or just show skeleton? 
-  // Given the layout, showing "Good day, User!" and then updating is fine.
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
 
   return (
     <div className="h-full w-full overflow-hidden flex flex-col">
@@ -114,11 +94,11 @@ export default function DashboardPage() {
         {/* Footer */}
         <div className="text-center mt-auto animate-in fade-in-0 duration-700" style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
           <p className="text-xs text-muted-foreground">
-            Developed by <span className="font-semibold text-primary">Mike Ryno Santiago</span>
+            Developed by <span className="font-semibold text-primary">Group 1</span>
           </p>
-          <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary mt-1 inline-block">
+          <a href="/terms" className="text-xs text-muted-foreground hover:text-primary mt-1 inline-block">
             Terms & Conditions
-          </Link>
+          </a>
         </div>
       </div>
     </div>

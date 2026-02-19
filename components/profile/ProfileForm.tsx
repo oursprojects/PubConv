@@ -1,13 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
+
+
+import { useFormStatus } from "react-dom";
+import { updateProfile, deleteAvatar } from "@/app/(main)/profile/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"; // Added Button import
 import { Label } from "@/components/ui/label";
 import { useState, useRef } from "react";
 import { Save, Upload, Loader2 } from "lucide-react";
-import { updateProfileClient, deleteAvatarClient } from "@/lib/profile-client";
 
 import { AnimatedButton } from "@/components/ui/animated-button";
 import {
@@ -22,21 +26,38 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+function SubmitButton({ hasNewImage }: { hasNewImage?: boolean }) {
+    const { pending } = useFormStatus();
+
+    return (
+        <AnimatedButton type="submit" disabled={pending} className="w-full sm:w-auto gap-2">
+            {pending ? (
+                <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {hasNewImage ? "Uploading..." : "Saving..."}
+                </>
+            ) : hasNewImage ? (
+                <>
+                    <Upload className="h-4 w-4" />
+                    Upload and Save
+                </>
+            ) : (
+                <>
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                </>
+            )}
+        </AnimatedButton>
+    );
+}
+
 import { AvatarEditor } from "./AvatarEditor";
 
-export function ProfileForm({ profile, user }: { profile: any, user: any }) {
+export function ProfileForm({ profile }: { profile: any }) {
     const router = useRouter();
     const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(profile?.avatar_url || null);
     const [selectedFile, setSelectedFile] = useState<Blob | null>(null);
-    const [loading, setLoading] = useState(false);
-
-    // Controlled inputs for tracking changes
-    const [bio, setBio] = useState(profile?.bio || "");
-    const [initialBio, setInitialBio] = useState(profile?.bio || "");
-
-    // Is Dirty Calculation
-    const isDirty = (bio !== initialBio) || (selectedFile !== null);
 
     // Cooldown Calculation
     const lastUpdate = profile?.last_avatar_update ? new Date(profile.last_avatar_update) : null;
@@ -82,52 +103,36 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
         setEditorImage(null);
     }
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+    async function handleSubmit(formData: FormData) {
         setMessage(null);
-        setLoading(true);
 
-        // Use state bio instead of formData
-        const avatarFile = selectedFile ? new File([selectedFile], 'avatar.webp', { type: 'image/webp' }) : null;
+        if (selectedFile) {
+            formData.set('avatar_file', selectedFile, 'avatar.webp');
+        }
 
-        const res = await updateProfileClient(bio, avatarFile);
-        setLoading(false);
-
+        const res = await updateProfile(formData);
         if (res?.error) {
             setMessage({ type: 'error', text: res.error });
         } else if (res?.success) {
             setMessage({ type: 'success', text: "Profile updated successfully!" });
-
-            // Update initial state to match current, so button disables again
-            setInitialBio(bio);
-            setSelectedFile(null);
-
-            // Don't full refresh to avoid "reloading" feel. 
-            // We just updated local state, which is good enough for now. 
-            // If we needed to update the header avatar, we might need a context update or router.refresh() 
-            // but user specifically asked to fix "reloading" feeling.
-            // router.refresh(); 
+            router.refresh();
         }
     }
 
     async function handleDeleteConfirmed() {
-        setLoading(true);
-        const res = await deleteAvatarClient();
-        setLoading(false);
-
+        const res = await deleteAvatar();
         if (res?.error) {
             setMessage({ type: 'error', text: res.error });
         } else {
             setMessage({ type: 'success', text: "Avatar removed." });
             setPreviewUrl(null);
-            setSelectedFile(null);
-            // router.refresh(); // Avoid refresh
+            router.refresh();
         }
     }
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form action={handleSubmit} className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                     <div className="relative group">
                         <Avatar className="h-24 w-24 cursor-pointer hover:opacity-90 transition-opacity">
@@ -223,8 +228,7 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
                         <Input
                             id="bio"
                             name="bio"
-                            value={bio}
-                            onChange={(e) => setBio(e.target.value)}
+                            defaultValue={profile?.bio || ""}
                             placeholder="Tell us about yourself..."
                         />
                     </div>
@@ -236,24 +240,7 @@ export function ProfileForm({ profile, user }: { profile: any, user: any }) {
                     </p>
                 )}
 
-                <AnimatedButton type="submit" disabled={loading || !isDirty} className="w-full sm:w-auto gap-2">
-                    {loading ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            {selectedFile ? "Uploading..." : "Saving..."}
-                        </>
-                    ) : selectedFile ? (
-                        <>
-                            <Upload className="h-4 w-4" />
-                            Upload and Save
-                        </>
-                    ) : (
-                        <>
-                            <Save className={!isDirty ? "h-4 w-4 opacity-50" : "h-4 w-4"} />
-                            Save Changes
-                        </>
-                    )}
-                </AnimatedButton>
+                <SubmitButton hasNewImage={!!selectedFile} />
             </form>
 
             <AvatarEditor

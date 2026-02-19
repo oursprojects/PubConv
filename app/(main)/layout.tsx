@@ -1,74 +1,48 @@
-"use client";
-
 import { TopHeader } from "@/components/layout/TopHeader";
 import { MaintenanceScreen } from "@/components/maintenance-screen";
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import PageTransition from "@/components/page-transition";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function MainLayout({
+export default async function MainLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [user, setUser] = useState<any>(null);
-    const [role, setRole] = useState('user');
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [maintenanceMode, setMaintenanceMode] = useState(false);
-    const router = useRouter();
-    const supabase = createClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    useEffect(() => {
-        async function loadData() {
-            // Use getSession() instead of getUser() because getSession() works offline 
-            // by checking the local storage token, whereas getUser() requires a server round-trip.
-            const { data: { session } } = await supabase.auth.getSession();
-            const user = session?.user;
+    let role = 'user';
+    let avatarUrl = null;
+    if (user) {
+        const { data } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single();
+        role = data?.role || 'user';
+        avatarUrl = data?.avatar_url;
+    }
 
-            if (user) {
-                setUser(user);
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role, avatar_url, is_banned')
-                    .eq('id', user.id)
-                    .single();
+    const { data: configs } = await supabase.from("app_config").select("*");
+    const maintenanceModeRaw = configs?.find((c: any) => c.key === "maintenance_mode")?.value;
+    const maintenanceMode = maintenanceModeRaw === true || maintenanceModeRaw === 'true';
 
-                if (profile?.is_banned) {
-                    await supabase.auth.signOut();
-                    router.push('/banned?reason=banned');
-                    return;
-                }
+    // Check if user is banned
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', user.id).single();
+        if (profile?.is_banned) {
+            // Force signout not directly possible in server component, but we can redirect to /banned
+            // Ideally, we'd sign them out via an API route or middleware, but redirecting to /banned or /login handles the UX.
+            // But since /banned has no auth middleware protection (it's public), it's fine.
+            // However, we want them completely locked out.
+            // Let's redirect to /login with error after signing out via a client component or just blocking here.
 
-                setRole(profile?.role || 'user');
-                setAvatarUrl(profile?.avatar_url);
-            } else {
-                // No user found, redirect to login
-                // This ensures the app opens on Login instead of Home/Dashboard if not authenticated
-                router.replace('/login');
-                return; // Stop loading rest of data
-            }
-
-            // Check maintenance mode
-            const { data: configs } = await supabase.from("app_config").select("*");
-            const maintenance = configs?.find((c: any) => c.key === "maintenance_mode")?.value || false;
-            setMaintenanceMode(maintenance);
-
-            setLoading(false);
+            // Actually, if we redirect to /banned, the RealtimeProvider (which *does* run on /banned?)
+            // Wait, RealtimeProvider stops on /banned? No, it's NOT in the exclusion list!
+            // checks exclusion: admin, maintenance, login, register.
+            // So on /banned, RealtimeProvider runs. And it listens for 'user_banned' broadcast.
+            // But on /banned page, we should also manually check status and signout?
+            // For now, let's redirect to /banned page explicitly if they try to access main layout.
+            redirect('/banned?reason=banned');
         }
-
-        loadData();
-    }, [supabase]);
-
-    if (loading) {
-        return (
-            <div className="h-screen w-full flex items-center justify-center bg-background">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
     }
 
     if (maintenanceMode && role !== 'admin') {

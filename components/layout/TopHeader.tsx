@@ -42,12 +42,6 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const [isOpen, setIsOpen] = React.useState(false);
 
     const handleLogout = async () => {
-        // Double check connection
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            toast.error("You cannot sign out while offline.");
-            return;
-        }
-
         // Show confirmation dialog
         const { swalConfirm } = await import('@/lib/swal');
         const result = await swalConfirm(
@@ -62,21 +56,12 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
         if (!result.isConfirmed) return;
 
         setIsLoggingOut(true);
-        try {
-            toast.loading("Signing out...");
-            const supabase = createClient();
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
-
-            toast.dismiss();
-            toast.success("Signed out successfully!");
-            router.push("/login"); // router.push vs replace? push is fine.
-        } catch (error) {
-            console.error("Logout error:", error);
-            toast.dismiss();
-            toast.error("Failed to sign out. Please check your connection.");
-            setIsLoggingOut(false);
-        }
+        toast.loading("Signing out...");
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        toast.dismiss();
+        toast.success("Signed out successfully!");
+        router.push("/login");
     };
 
     const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
@@ -96,13 +81,8 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                 </Link>
 
                 {/* Current Date */}
-                <div className="flex items-center ml-2 md:ml-4 px-2 md:px-3 py-1 bg-muted/50 rounded-lg">
-                    {/* Mobile: shorter date format */}
-                    <span className="text-xs text-muted-foreground font-medium md:hidden">
-                        {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                    {/* Desktop: full date format */}
-                    <span className="hidden md:inline text-xs text-muted-foreground font-medium">
+                <div className="hidden md:flex items-center ml-4 px-3 py-1 bg-muted/50 rounded-lg">
+                    <span className="text-xs text-muted-foreground font-medium">
                         {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                 </div>
@@ -186,7 +166,27 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                             ))}
 
                             {/* Admin Dashboard */}
-
+                            {role === 'admin' && (
+                                <DropdownMenuItem
+                                    asChild
+                                    className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
+                                    style={{ animationDelay: `${pathname === "/" ? 0 : navItems.length * 50}ms`, animationFillMode: 'both' }}
+                                >
+                                    <Link
+                                        href="/admin"
+                                        className={cn(
+                                            "flex items-center justify-center h-9 w-9 rounded-xl border transition-all duration-200",
+                                            pathname === "/admin"
+                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105"
+                                        )}
+                                        title="Admin Dashboard"
+                                    >
+                                        <ShieldCheck className="h-4 w-4" />
+                                        <span className="sr-only">Admin</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            )}
 
                             {/* About Item - Only show when NOT on home page */}
                             {pathname !== "/" && (
@@ -220,13 +220,9 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 style={{ animationDelay: `${pathname === "/" ? (role === 'admin' ? 50 : 0) : (navItems.length + (role === 'admin' ? 2 : 1)) * 50}ms`, animationFillMode: 'both' }}
                                 onSelect={(e) => {
                                     e.preventDefault();
-                                    if (!navigator.onLine) {
-                                        toast.error("You cannot sign out while offline.");
-                                        return;
-                                    }
                                     handleLogout();
                                 }}
-                                disabled={isLoggingOut || (typeof navigator !== 'undefined' && !navigator.onLine)}
+                                disabled={isLoggingOut}
                             >
                                 <div className={cn(
                                     "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 transition-all duration-200 cursor-pointer",

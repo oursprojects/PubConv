@@ -1,200 +1,354 @@
 -- ================================================================================
 -- PUBCONV DATABASE SCHEMA
 -- ================================================================================
--- This file contains the complete database schema including tables, RLS policies,
--- functions, triggers, and views.
-
--- ================================================================================
--- 1. CORE TABLES & POLICIES
+-- Run this entire file in the Supabase SQL Editor on a fresh project.
+-- All tables, RLS policies, storage, functions, triggers, and views are included.
+-- Last updated: 2026-02-19
 -- ================================================================================
 
--- Create a table for public profiles
-create table if not exists profiles (
-  id uuid references auth.users on delete cascade not null primary key,
-  username text unique,
-  avatar_url text,
-  bio text,
-  role text default 'user' check (role in ('user', 'admin')),
-  is_banned boolean default false,
-  updated_at timestamp with time zone,
 
-  constraint username_length check (char_length(username) >= 3)
+-- ================================================================================
+-- 1. CORE TABLES
+-- ================================================================================
+
+-- profiles: One row per auth user
+CREATE TABLE IF NOT EXISTS profiles (
+  id              uuid        REFERENCES auth.users ON DELETE CASCADE NOT NULL PRIMARY KEY,
+  username        text        UNIQUE,
+  avatar_url      text,
+  bio             text,
+  role            text        DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  is_banned       boolean     DEFAULT false,
+  theme           text        DEFAULT 'zinc',
+  last_avatar_update timestamptz,
+  updated_at      timestamptz,
+
+  CONSTRAINT username_length CHECK (char_length(username) >= 3)
 );
 
--- Set up Row Level Security (RLS)
-alter table profiles enable row level security;
-
-create policy "Public profiles are viewable by everyone." on profiles
-  for select using (true);
-
-create policy "Users can insert their own profile." on profiles
-  for insert with check (auth.uid() = id);
-
-create policy "Users can update own profile." on profiles
-  for update using (auth.uid() = id);
-
--- Create a table for messages
-create table if not exists messages (
-  id uuid default gen_random_uuid() primary key,
-  content text not null,
-  user_id uuid references profiles(id) on delete cascade not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  is_deleted boolean default false
+-- messages: Chat messages with reply threading and emoji reactions
+CREATE TABLE IF NOT EXISTS messages (
+  id           uuid     DEFAULT gen_random_uuid() PRIMARY KEY,
+  content      text     NOT NULL,
+  user_id      uuid     REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  reply_to_id  uuid     REFERENCES messages(id) ON DELETE SET NULL,
+  reactions    jsonb    DEFAULT '{}'::jsonb,
+  is_deleted   boolean  DEFAULT false,
+  created_at   timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Set up RLS
-alter table messages enable row level security;
-
-create policy "Messages are viewable by everyone." on messages
-  for select using (is_deleted = false);
-
-create policy "Authenticated users can insert messages." on messages
-  for insert with check (auth.uid() = user_id);
-
--- Create a table for app configuration (maintenance mode, etc.)
-create table if not exists app_config (
-  key text primary key,
-  value boolean default false
+-- feedbacks: User-submitted feedback (admin-only visibility)
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id         uuid     DEFAULT gen_random_uuid() PRIMARY KEY,
+  content    text     NOT NULL,
+  user_id    uuid     REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Insert default config
-insert into app_config (key, value) values
-  ('maintenance_mode', false),
-  ('disable_signup', false)
-on conflict (key) do nothing;
-
-alter table app_config enable row level security;
-
-create policy "Config is viewable by everyone." on app_config
-  for select using (true);
-
--- Create feedbacks table
-create table if not exists feedbacks (
-  id uuid default gen_random_uuid() primary key,
-  content text not null,
-  user_id uuid references profiles(id) on delete cascade not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+-- app_config: Global settings (maintenance mode, sign-up toggle, rate limit, etc.)
+CREATE TABLE IF NOT EXISTS app_config (
+  key   text    PRIMARY KEY,
+  value text    DEFAULT 'false'  -- stored as text to support bool ('true'/'false') and numbers
 );
 
-alter table feedbacks enable row level security;
+-- Seed default config values
+INSERT INTO app_config (key, value) VALUES
+  ('maintenance_mode', 'false'),
+  ('disable_signup',   'false'),
+  ('message_rate_limit', '0')
+ON CONFLICT (key) DO NOTHING;
 
-create policy "Feedbacks are viewable by admins only." on feedbacks
-  for select using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
-
-create policy "Users can insert feedback." on feedbacks
-  for insert with check (auth.uid() = user_id);
-
--- ================================================================================
--- 2. FUNCTIONS & TRIGGERS
--- ================================================================================
-
--- Function to handle new user signup
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, username, avatar_url)
-  values (new.id, new.raw_user_meta_data->>'username', new.raw_user_meta_data->>'avatar_url');
-  return new;
-end;
-$$ language plpgsql security definer;
-
--- Trigger to call handle_new_user on signup
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-
--- Trigger to check ban status before message insert
-create or replace function check_is_banned()
-returns trigger as $$
-begin
-  if exists (select 1 from profiles where id = auth.uid() and is_banned = true) then
-    raise exception 'User is banned';
-  end if;
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists on_message_insert on messages;
-create trigger on_message_insert
-  before insert on messages
-  for each row execute procedure check_is_banned();
 
 -- ================================================================================
--- 3. REALTIME PUBLICATIONS
+-- 2. ROW LEVEL SECURITY (RLS)
 -- ================================================================================
 
--- Enable Realtime for tables
--- Note: 'supabase_realtime' publication usually exists by default on Supabase
-alter publication supabase_realtime add table messages;
-alter publication supabase_realtime add table app_config;
--- alter publication supabase_realtime add table profiles; -- Optional
+-- profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public profiles are viewable by everyone." ON profiles
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can insert their own profile." ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile." ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+-- messages
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Messages are viewable by everyone." ON messages
+  FOR SELECT USING (is_deleted = false);
+
+CREATE POLICY "Authenticated users can insert messages." ON messages
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Admins can delete any message (by role check)
+CREATE POLICY "Admins can delete any message." ON messages
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- feedbacks
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Feedbacks are viewable by admins only." ON feedbacks
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Users can insert feedback." ON feedbacks
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- app_config
+ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Config is viewable by everyone." ON app_config
+  FOR SELECT USING (true);
+
+-- Admins can update/insert config (enforced via service role in practice)
+CREATE POLICY "Admins can update config." ON app_config
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 
 -- ================================================================================
--- 4. ADMIN STATS & VIEWS
+-- 3. STORAGE (Avatar bucket)
 -- ================================================================================
 
--- Create the materialized view
-create materialized view if not exists admin_stats as
-select
-  (select count(*) from profiles) as total_users,
-  (select count(*) from profiles where is_banned = true) as banned_users,
-  (select count(*) from profiles where role = 'admin') as admin_users,
-  (select count(*) from messages) as total_messages,
-  (select count(*) from feedbacks) as total_feedbacks,
-  now() as last_refreshed;
+-- Create avatars bucket (public)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
 
--- Create index for faster access
-create unique index if not exists admin_stats_idx on admin_stats (last_refreshed);
+-- Storage RLS policies
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own avatar"    ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own avatar"    ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own avatar"    ON storage.objects;
 
--- Create a function to refresh the stats
-create or replace function refresh_admin_stats()
-returns void as $$
-begin
-  refresh materialized view concurrently admin_stats;
-end;
-$$ language plpgsql security definer;
+CREATE POLICY "Avatar images are publicly accessible"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');
 
--- Grant access to admins
-grant select on admin_stats to authenticated;
-grant execute on function refresh_admin_stats() to authenticated;
+CREATE POLICY "Users can upload their own avatar"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'avatars' AND
+    auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "Users can update their own avatar"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'avatars' AND name LIKE (auth.uid() || '%'));
+
+CREATE POLICY "Users can delete their own avatar"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'avatars' AND name LIKE (auth.uid() || '%'));
+
 
 -- ================================================================================
--- 5. MAINTENANCE & CLEANUP
+-- 4. FUNCTIONS & TRIGGERS
 -- ================================================================================
 
--- Create the cleanup function for old messages (Free Tier friendly)
-create or replace function cleanup_old_messages()
-returns integer as $$
-declare
+-- Auto-create a profile row when a new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username, avatar_url)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data->>'username',
+    NULL  -- Uses InitialsAvatar on the frontend
+  );
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Block banned users from sending messages
+CREATE OR REPLACE FUNCTION public.check_is_banned()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION 'User is banned';
+  END IF;
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_message_insert ON messages;
+CREATE TRIGGER on_message_insert
+  BEFORE INSERT ON messages
+  FOR EACH ROW EXECUTE PROCEDURE public.check_is_banned();
+
+-- Toggle emoji reaction on a message (one reaction per user per message)
+CREATE OR REPLACE FUNCTION public.toggle_message_reaction(
+  p_message_id UUID,
+  p_emoji      TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_user_id          TEXT;
+  v_current_reactions JSONB;
+  v_emoji_users       JSONB;
+  v_new_emoji_users   JSONB;
+  v_final_reactions   JSONB;
+  v_key               TEXT;
+  v_already_reacted   BOOLEAN;
+BEGIN
+  v_user_id := auth.uid()::text;
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT reactions INTO v_current_reactions
+  FROM messages WHERE id = p_message_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Message not found';
+  END IF;
+
+  IF v_current_reactions IS NULL THEN
+    v_current_reactions := '{}'::jsonb;
+  END IF;
+
+  -- Check if user already has this emoji
+  v_emoji_users := COALESCE(v_current_reactions -> p_emoji, '[]'::jsonb);
+  v_already_reacted := v_emoji_users @> to_jsonb(v_user_id);
+
+  -- Remove user from ALL emojis (one-reaction-per-user rule)
+  v_final_reactions := '{}'::jsonb;
+  FOR v_key IN SELECT jsonb_object_keys(v_current_reactions)
+  LOOP
+    SELECT jsonb_agg(elem) INTO v_new_emoji_users
+    FROM jsonb_array_elements(v_current_reactions -> v_key) elem
+    WHERE elem::text <> ('"' || v_user_id || '"');
+
+    IF v_new_emoji_users IS NOT NULL AND jsonb_array_length(v_new_emoji_users) > 0 THEN
+      v_final_reactions := jsonb_set(v_final_reactions, ARRAY[v_key], v_new_emoji_users);
+    END IF;
+  END LOOP;
+
+  -- If user did NOT already have this emoji, add them now
+  IF NOT v_already_reacted THEN
+    v_emoji_users     := COALESCE(v_final_reactions -> p_emoji, '[]'::jsonb);
+    v_new_emoji_users := v_emoji_users || to_jsonb(v_user_id);
+    v_final_reactions := jsonb_set(v_final_reactions, ARRAY[p_emoji], v_new_emoji_users);
+  END IF;
+
+  UPDATE messages SET reactions = v_final_reactions WHERE id = p_message_id;
+  RETURN v_final_reactions;
+END;
+$$;
+
+-- Refresh the admin_stats materialized view
+CREATE OR REPLACE FUNCTION public.refresh_admin_stats()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY admin_stats;
+END;
+$$;
+
+-- Delete messages older than 30 days and return count
+CREATE OR REPLACE FUNCTION public.cleanup_old_messages()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
   deleted_count integer;
-begin
-  -- Delete messages older than 30 days
-  with deleted as (
-    delete from messages 
-    where created_at < now() - interval '30 days'
-    returning *
+BEGIN
+  WITH deleted AS (
+    DELETE FROM messages
+    WHERE created_at < now() - INTERVAL '30 days'
+    RETURNING *
   )
-  select count(*) into deleted_count from deleted;
-  
-  return deleted_count;
-end;
-$$ language plpgsql security definer;
+  SELECT count(*) INTO deleted_count FROM deleted;
+  RETURN deleted_count;
+END;
+$$;
 
--- Grant execute permission
-grant execute on function cleanup_old_messages() to authenticated;
 
--- Example pg_cron usage (Supabase Pro)
+-- ================================================================================
+-- 5. ADMIN STATS VIEW
+-- ================================================================================
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS admin_stats AS
+SELECT
+  (SELECT count(*) FROM profiles)                         AS total_users,
+  (SELECT count(*) FROM profiles WHERE is_banned = true)  AS banned_users,
+  (SELECT count(*) FROM profiles WHERE role = 'admin')    AS admin_users,
+  (SELECT count(*) FROM messages)                         AS total_messages,
+  (SELECT count(*) FROM feedbacks)                        AS total_feedbacks,
+  now()                                                   AS last_refreshed;
+
+-- Required unique index for REFRESH CONCURRENTLY
+CREATE UNIQUE INDEX IF NOT EXISTS admin_stats_idx ON admin_stats (last_refreshed);
+
+-- Access control: only authenticated users (admins should be enforced in app layer)
+REVOKE SELECT ON TABLE public.admin_stats FROM anon;
+GRANT  SELECT ON TABLE public.admin_stats TO authenticated;
+GRANT EXECUTE ON FUNCTION public.refresh_admin_stats()   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_messages()  TO authenticated;
+
+
+-- ================================================================================
+-- 6. REALTIME PUBLICATIONS
+-- ================================================================================
+
+-- Enable Realtime for live chat and config changes
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE app_config;
+-- ALTER PUBLICATION supabase_realtime ADD TABLE profiles; -- Optional
+
+
+-- ================================================================================
+-- 7. SCHEDULED JOBS (Supabase Pro / pg_cron only)
+-- ================================================================================
+-- Uncomment these if you upgrade to a paid plan that includes pg_cron.
+
 /*
-select cron.schedule(
+SELECT cron.schedule(
   'refresh-admin-stats',
-  '0 * * * *',  -- Every hour
-  $$ select refresh_admin_stats() $$
+  '0 * * * *',           -- Every hour
+  $$ SELECT public.refresh_admin_stats(); $$
 );
 
-select cron.schedule(
+SELECT cron.schedule(
   'cleanup-old-messages',
-  '0 3 * * *',  -- Daily at 3 AM
-  $$ select cleanup_old_messages() $$
+  '0 3 * * *',           -- Daily at 3 AM UTC
+  $$ SELECT public.cleanup_old_messages(); $$
 );
 */

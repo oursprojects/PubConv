@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, MapPin, Code, Sparkles, Heart, Github } from "lucide-react";
+import { MapPin, Code, Sparkles, Heart, Crown, Users } from "lucide-react";
 import Image from "next/image";
 
 const techStack = [
@@ -11,6 +11,16 @@ const techStack = [
     { name: "TypeScript", color: "bg-blue-600/10 text-blue-700 dark:text-blue-300" },
     { name: "Supabase", color: "bg-green-500/10 text-green-600 dark:text-green-400" },
     { name: "Tailwind", color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
+];
+
+const members = [
+    "Hannah Joyce Lagat",
+    "Mary Claire Valle",
+    "Catherine Corpuz",
+    "John Carlo Flores",
+    "Karylle Jamie",
+    "Rose-Ann Barangayan Borac",
+    "Marswin Antonio",
 ];
 
 export default function AboutPage() {
@@ -26,7 +36,7 @@ export default function AboutPage() {
                         <div className="relative h-24 w-24 rounded-2xl overflow-hidden ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
                             <Image
                                 src="/mike_ryno.png"
-                                alt="Mike Ryno Santiago"
+                                alt="Group 1"
                                 fill
                                 className="object-cover hover:scale-110 transition-transform duration-300"
                                 priority
@@ -40,7 +50,7 @@ export default function AboutPage() {
                             <Sparkles className="h-3 w-3 mr-1" />
                             Developer
                         </Badge>
-                        <h1 className="text-xl font-bold tracking-tight">Mike Ryno Santiago</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Group 1</h1>
                         <p className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
                             <MapPin className="h-3 w-3" />
                             Philippines
@@ -52,17 +62,41 @@ export default function AboutPage() {
                 <Card className="bg-muted/30 border-border/50 animate-in fade-in-0 slide-in-from-bottom-4 duration-700" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
                     <CardContent className="p-4 text-center space-y-3">
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            <span className="font-semibold text-foreground">PubConv</span> is my project — built from scratch to showcase my passion for creating real-time, interactive applications.
+                            <span className="font-semibold text-foreground">PubConv</span> was created by <span className="font-semibold text-foreground">Group 1</span> — built from scratch to showcase our passion for creating real-time, interactive applications.
                         </p>
                         <div className="flex items-center justify-center gap-1.5 text-xs text-primary/80 italic pt-1">
                             <Heart className="h-3.5 w-3.5" />
-                            "Let AI empower you to build what you never could alone."
+                            &quot;Let AI empower you to build what you never could alone.&quot;
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Members Card */}
+                <Card className="bg-muted/30 border-border/50 animate-in fade-in-0 slide-in-from-bottom-4 duration-700" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+                    <CardContent className="p-4 space-y-2">
+                        {/* Leader */}
+                        <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                            <Crown className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                            <div>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Leader</p>
+                                <p className="text-sm font-semibold text-foreground">Mike Ryno Santiago</p>
+                            </div>
+                        </div>
+                        {/* Members */}
+                        <div className="flex items-start gap-2 pt-1">
+                            <Users className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Members</p>
+                                {members.map((name) => (
+                                    <p key={name} className="text-xs text-foreground/80">{name}</p>
+                                ))}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Tech Stack */}
-                <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700" style={{ animationDelay: '450ms', animationFillMode: 'both' }}>
+                <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700" style={{ animationDelay: '550ms', animationFillMode: 'both' }}>
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                         <Code className="h-3 w-3 text-muted-foreground" />
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Built with</span>
@@ -72,7 +106,7 @@ export default function AboutPage() {
                             <Badge
                                 key={tech.name}
                                 className={`${tech.color} text-[10px] px-2 py-0.5 font-medium border-0 animate-in fade-in-0 zoom-in-75 duration-500`}
-                                style={{ animationDelay: `${550 + i * 80}ms`, animationFillMode: 'both' }}
+                                style={{ animationDelay: `${650 + i * 80}ms`, animationFillMode: 'both' }}
                             >
                                 {tech.name}
                             </Badge>
@@ -80,30 +114,7 @@ export default function AboutPage() {
                     </div>
                 </div>
 
-                {/* Social Links */}
-                <div className="flex justify-center gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-700" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
-                    <a
-                        href="https://www.facebook.com/RynoMike.santiago/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-xl text-xs hover:bg-blue-500/10 hover:text-blue-600 transition-all border border-transparent hover:border-blue-500/30"
-                    >
-                        <Facebook className="h-3.5 w-3.5" />
-                        Facebook
-                    </a>
-                    <a
-                        href="https://github.com/oursprojects"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-xl text-xs hover:bg-muted transition-all border border-transparent hover:border-border"
-                    >
-                        <Github className="h-3.5 w-3.5" />
-                        GitHub
-                    </a>
-                </div>
             </div>
         </div>
     );
 }
-
-

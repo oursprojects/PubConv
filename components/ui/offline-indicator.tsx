@@ -62,23 +62,20 @@ export function OfflineIndicator() {
     return (
         <div
             className={cn(
-                "fixed left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center gap-2 py-1.5 px-4 text-xs font-medium transition-all duration-300 transform rounded-full border shadow-sm",
-                // Mobile-friendly top positioning that avoids the status bar but floats above content
-                "top-2 sm:top-4",
-                isReconnecting
-                    ? "bg-amber-100/80 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border-amber-200/50 dark:border-amber-800/50 backdrop-blur-md"
-                    : "bg-destructive/15 text-destructive border-destructive/20 backdrop-blur-md"
+                "fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium transition-all duration-300",
+                "bg-red-500 text-white shadow-lg",
+                isReconnecting && "bg-yellow-500 text-yellow-900"
             )}
         >
             {isReconnecting ? (
                 <>
-                    <RefreshCw className="h-3 w-3 animate-spin" />
-                    <span>Connecting...</span>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Reconnecting...</span>
                 </>
             ) : (
                 <>
-                    <WifiOff className="h-3 w-3" />
-                    <span>No internet connection</span>
+                    <WifiOff className="h-4 w-4" />
+                    <span>You&apos;re offline. Check your connection.</span>
                 </>
             )}
         </div>

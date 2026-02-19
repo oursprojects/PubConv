@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function TermsPage() {
     return (
-        <div className="min-h-screen bg-background overflow-auto pt-[env(safe-area-inset-top)]">
+        <div className="min-h-screen bg-background overflow-auto">
             <div className="max-w-lg mx-auto px-4 py-6">
                 <div className="text-center mb-5 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                     <div className="inline-flex items-center justify-center p-2 rounded-xl bg-primary/10 mb-3">

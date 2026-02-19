@@ -3,9 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
-import { get, set } from 'idb-keyval'
-import { Network } from '@capacitor/network'
 
 export type Message = {
     id: string
@@ -26,7 +23,6 @@ export type Message = {
         }
     }
     isPending?: boolean
-    status?: 'sending' | 'sent' | 'failed'
     reactions?: Record<string, string[]> | null
 }
 
@@ -40,15 +36,12 @@ export function useChat() {
     const [activeUsers, setActiveUsers] = useState<{ username: string, role: string, avatar_url: string | null }[]>([])
     const [username, setUsername] = useState<string | null>(null)
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
-    const [retryCount, setRetryCount] = useState(0)
-    const [typingUsers, setTypingUsers] = useState<string[]>([]) // List of usernames typing
 
     const supabase = createClient()
     const router = useRouter()
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
     const profileCache = useRef<ProfileCache>(new Map())
-    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -69,24 +62,6 @@ export function useChat() {
         }
     }, [router]);
 
-    // Load from IDB on mount
-    useEffect(() => {
-        const loadCachedMessages = async () => {
-            const cached = await get<Message[]>('chat_messages');
-            if (cached) {
-                setMessages(sortMessages(cached));
-            }
-        };
-        loadCachedMessages();
-    }, [sortMessages]);
-
-    // Save to IDB whenever messages change (debounce slightly if needed, but here direct is okay for now)
-    useEffect(() => {
-        if (messages.length > 0) {
-            set('chat_messages', messages);
-        }
-    }, [messages]);
-
     const fetchMessages = useCallback(async () => {
         // Fetch messages without the self-join (which returns wrong direction)
         const { data: initialMessages, error } = await supabase
@@ -100,7 +75,6 @@ export function useChat() {
 
         if (error) {
             console.error('Error fetching messages:', error);
-            // Don't clear messages on error, just keep cached ones
             return;
         }
 
@@ -145,34 +119,10 @@ export function useChat() {
                 };
             });
 
-            // Merge with local queue if needed, but for now just set
-            setMessages(prev => {
-                // Keep pending messages that are not yet in the fetched list
-                const pending = prev.filter(m => m.isPending);
-                const uniqueFormatted = formattedMessages.filter(m => !pending.some(p => p.id === m.id));
-                return sortMessages([...uniqueFormatted, ...pending] as Message[]);
-            });
+            setMessages(sortMessages(formattedMessages as Message[]));
             scrollToBottom();
-
-            // If we successfully fetched messages, we have internet access. 
-            // Set status to connected to verify connectivity even if socket is lagging.
-            setConnectionStatus('connected');
         }
     }, [supabase, scrollToBottom, sortMessages]);
-
-    // Send typing event (debounced on UI side, but here we just send)
-    const sendTypingEvent = async (isTyping: boolean) => {
-        if (channelRef.current && username) {
-            await channelRef.current.track({
-                user_id: userId,
-                username: username,
-                role: role,
-                avatar_url: profileCache.current.get(userId!)?.avatar_url,
-                online_at: new Date().toISOString(),
-                is_typing: isTyping // Add typing status to presence
-            });
-        }
-    };
 
     // Initialize realtime connection
     useEffect(() => {
@@ -183,33 +133,23 @@ export function useChat() {
         let currentUserId: string | null = null;
 
         const init = async () => {
-            // 1. Get User Session (works offline if cached)
-            const { data: { session } } = await supabase.auth.getSession();
+            // 1. Get User
+            const { data: { user } } = await supabase.auth.getUser();
             if (!isMounted) return;
 
-            if (session?.user) {
-                currentUserId = session.user.id;
-                setUserId(currentUserId);
+            currentUserId = user?.id ?? null;
+            setUserId(currentUserId);
 
-                // Optimistically try to get profile from cache or IDB if needed, 
-                // but for now we try to fetch if online. 
-                // If offline, we might miss the username until reconnect.
-                // TODO: Store profile in IDB too.
-
+            if (user) {
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('username, role, avatar_url, is_banned')
-                    .eq('id', session.user.id)
+                    .eq('id', user.id)
                     .single();
 
                 if (error && error.code === 'PGRST116') {
-                    // Profile deleted?
-                    // Only redirect if we are SURE it's not a network error. 
-                    // PGRST116 is specific "no rows".
                     handleUserRemoved('deleted');
                     return;
-                } else if (!data && !error) {
-                    // Network error likely?
                 }
 
                 if (isMounted && data) {
@@ -223,29 +163,21 @@ export function useChat() {
                     currentAvatar = data.avatar_url || null;
                     setUsername(currentUsername);
 
-                    profileCache.current.set(session.user.id, {
+                    profileCache.current.set(user.id, {
                         username: currentUsername,
                         avatar_url: currentAvatar,
                         role: currentRole
                     });
                 }
-            } else {
-                // No session found? Then we can redirect to login.
-                // But wait, what if we are offline and session expired? 
-                // getSession should return null if no token.
-                // If offline, we might want to stay on the page but disabled?
-                // For now, if no local session, we must login.
-                // router.push('/login'); // Let the page component handle this check or leave it
             }
 
-            // 2. Fetch Messages (will fail if offline, but that's handled)
+            // 2. Fetch Messages
             await fetchMessages();
 
             // 3. Create ONE channel for everything (presence + broadcast)
             const channel = supabase.channel('chat_room', {
                 config: {
-                    broadcast: { self: true },
-                    presence: { key: currentUserId || 'anon' }
+                    broadcast: { self: true }
                 }
             });
             channelRef.current = channel;
@@ -253,13 +185,14 @@ export function useChat() {
             channel
                 // BROADCAST for new messages (instant, client-to-client)
                 .on('broadcast', { event: 'new_message' }, (payload: { payload: Message }) => {
+                    console.log('📩 Broadcast message received:', payload);
                     const msg = payload.payload as Message;
 
                     if (isMounted && msg) {
                         setMessages((current) => {
                             // Skip if already exists or is own message
-                            if (current.some(m => m.id === msg.id && !m.isPending)) return current;
-                            if (msg.user_id === currentUserId) return current; // We handle our own optimistically
+                            if (current.some(m => m.id === msg.id)) return current;
+                            if (msg.user_id === currentUserId) return current;
                             // Sort after adding to ensure correct chronological order
                             const updated = [...current, msg];
                             return updated.sort((a, b) =>
@@ -271,6 +204,7 @@ export function useChat() {
                 })
                 // BROADCAST for deleted messages
                 .on('broadcast', { event: 'delete_message' }, (payload: { payload: { id: string } }) => {
+                    console.log('🗑️ Broadcast delete received:', payload);
                     const msgId = payload.payload?.id;
                     if (isMounted && msgId) {
                         setMessages((current) => current.filter(m => m.id !== msgId));
@@ -278,30 +212,40 @@ export function useChat() {
                 })
                 // BROADCAST for clear all messages (admin action)
                 .on('broadcast', { event: 'clear_all' }, (_payload: unknown) => {
+                    console.log('🧹 Broadcast clear all received');
                     if (isMounted) {
                         setMessages([]);
                     }
                 })
                 // BROADCAST for maintenance mode toggle
                 .on('broadcast', { event: 'maintenance_mode' }, (payload: { payload: { enabled: boolean } }) => {
+                    console.log('🔧 Maintenance mode broadcast received:', payload);
+                    console.log('🔧 Current role:', currentRole, 'isMounted:', isMounted);
+                    console.log('🔧 Payload enabled:', payload.payload?.enabled);
                     if (isMounted && payload.payload?.enabled && currentRole !== 'admin') {
+                        console.log('🔧 Redirecting to /maintenance...');
                         router.push('/maintenance?returnTo=%2Fchat');
+                    } else {
+                        console.log('🔧 Not redirecting - conditions not met');
                     }
                 })
                 // BROADCAST for user banned
                 .on('broadcast', { event: 'user_banned' }, (payload: { payload: { userId: string } }) => {
+                    console.log('🚫 User banned broadcast received:', payload);
                     if (isMounted && payload.payload?.userId === currentUserId) {
                         router.push('/banned?reason=banned');
                     }
                 })
                 // BROADCAST for user deleted
                 .on('broadcast', { event: 'user_deleted' }, (payload: { payload: { userId: string } }) => {
+                    console.log('❌ User deleted broadcast received:', payload);
                     if (isMounted && payload.payload?.userId === currentUserId) {
                         router.push('/banned?reason=deleted');
                     }
                 })
                 // BROADCAST for message generic updates (like reactions)
                 .on('broadcast', { event: 'update_message' }, (payload: { payload: { id: string, reactions: Record<string, string[]> } }) => {
+                    console.log('🔄 Message update broadcast:', payload);
                     if (isMounted && payload.payload) {
                         setMessages(current => current.map(msg =>
                             msg.id === payload.payload.id
@@ -310,28 +254,15 @@ export function useChat() {
                         ));
                     }
                 })
-                // Presence for online users & typing status
+                // Presence for online users
                 .on('presence', { event: 'sync' }, () => {
                     const newState = channel.presenceState();
-                    const stateValues = Object.values(newState).flat() as {
-                        username?: string,
-                        role?: string,
-                        avatar_url?: string | null,
-                        user_id?: string,
-                        is_typing?: boolean
-                    }[];
+                    const stateValues = Object.values(newState).flat() as { username?: string, role?: string, avatar_url?: string | null, user_id?: string }[];
 
                     const uniqueByUserId = new Map<string, typeof stateValues[0]>();
                     stateValues.forEach(u => {
                         if (u.user_id) {
-                            // Prioritize the entry that says "is_typing: true" if multiple exist for same user?
-                            // Presence usually syncs latest state. We just take whatever is there.
-                            // If a user has multiple tabs, and one is typing, we consider them typing.
-                            const existing = uniqueByUserId.get(u.user_id);
-                            if (!existing || (!existing.is_typing && u.is_typing)) {
-                                uniqueByUserId.set(u.user_id, u);
-                            }
-
+                            uniqueByUserId.set(u.user_id, u);
                             profileCache.current.set(u.user_id, {
                                 username: u.username || 'User',
                                 avatar_url: u.avatar_url || null,
@@ -341,8 +272,6 @@ export function useChat() {
                     });
 
                     const uniqueEntries = Array.from(uniqueByUserId.values());
-
-                    // Filter active users list
                     const users = uniqueEntries
                         .filter((u) => u.username && u.username !== 'Guest')
                         .map((u) => ({
@@ -355,15 +284,9 @@ export function useChat() {
                     users.forEach(u => uniqueUsersMap.set(u.username, u));
                     const uniqueUsers = Array.from(uniqueUsersMap.values());
 
-                    // Filter typing users (exclude self)
-                    const typing = uniqueEntries
-                        .filter(u => u.is_typing && u.user_id !== currentUserId && u.username)
-                        .map(u => u.username!);
-
                     if (isMounted) {
                         setOnlineCount(uniqueEntries.length);
                         setActiveUsers(uniqueUsers);
-                        setTypingUsers(typing);
                     }
                 })
                 .subscribe(async (status: string) => {
@@ -377,7 +300,6 @@ export function useChat() {
                             role: currentRole,
                             avatar_url: currentAvatar,
                             online_at: new Date().toISOString(),
-                            is_typing: false
                         });
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                         setConnectionStatus('disconnected');
@@ -391,138 +313,23 @@ export function useChat() {
 
         return () => {
             isMounted = false;
-            // Clean up typing timeout
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
             }
         };
-    }, [supabase, router, fetchMessages, scrollToBottom, handleUserRemoved, retryCount]);
+    }, [supabase, router, fetchMessages, scrollToBottom, handleUserRemoved]);
 
     // Auto-scroll on new messages
     useEffect(() => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
-    // Reconnect function - triggers re-initialization by forcing component remount
-    const reconnect = useCallback(async () => {
-        setConnectionStatus('connecting');
-        if (channelRef.current) {
-            await supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-        }
-        // Force effect re-run by updating retryCount
-        setRetryCount(prev => prev + 1);
-    }, [supabase]);
-
-    // Flush queue function
-    const flushQueue = useCallback(async () => {
-        const queue = await get<Message[]>('message_queue') || [];
-        if (queue.length === 0) return;
-
-        console.log('Flushing offline queue:', queue.length, 'messages');
-        const queueCopy = [...queue];
-        // Clear queue immediately to avoid double send (if failed, we re-add)
-        await set('message_queue', []);
-
-        for (const msg of queueCopy) {
-            // Try sending
-            // Haptic feedback for send action (light impact)
-            try {
-                // If it's a real call, we can call sendMessage? 
-                // But sendMessage adds to state. We already have it in state?
-                // Ideally, we just call the API.
-
-                const { data, error } = await supabase
-                    .from('messages')
-                    .insert({
-                        content: msg.content,
-                        user_id: msg.user_id,
-                        reply_to_id: msg.reply_to_id
-                    })
-                    .select('id, created_at')
-                    .single();
-
-                if (error) {
-                    // Failed again, put back in queue?
-                    console.error('Failed to flush message:', msg.id, error);
-                    const currentQueue = await get<Message[]>('message_queue') || [];
-                    await set('message_queue', [...currentQueue, msg]);
-
-                    // Update UI to failed
-                    setMessages(prev => prev.map(m =>
-                        m.id === msg.id ? { ...m, status: 'failed' } : m
-                    ));
-
-                } else {
-                    // Success!
-                    // Update local message with real ID and sent status
-                    const realMessage: Message = { ...msg, id: data.id, created_at: data.created_at, isPending: false, status: 'sent' };
-
-                    setMessages(prev => {
-                        const updated = prev.map(m => m.id === msg.id ? realMessage : m);
-                        return sortMessages(updated);
-                    });
-
-                    // BROADCAST to other clients
-                    if (channelRef.current) {
-                        channelRef.current.send({
-                            type: 'broadcast',
-                            event: 'new_message',
-                            payload: realMessage
-                        });
-                    }
-                }
-
-            } catch (e) {
-                // Push back
-                const currentQueue = await get<Message[]>('message_queue') || [];
-                await set('message_queue', [...currentQueue, msg]);
-            }
-        }
-    }, [supabase, channelRef, sortMessages]);
-
-    // Network Listener for auto-flush
-    useEffect(() => {
-        let handle: any;
-        const setupListener = async () => {
-            // Initial check
-            const status = await Network.getStatus();
-            if (status.connected) flushQueue();
-
-            handle = await Network.addListener('networkStatusChange', status => {
-                if (status.connected) {
-                    setConnectionStatus('connected');
-                    flushQueue();
-                    reconnect();
-                } else {
-                    setConnectionStatus('disconnected');
-                }
-            });
-        };
-        setupListener();
-        return () => {
-            if (handle) handle.remove();
-        }
-    }, [flushQueue, reconnect]);
-
-
     // Send message with optimistic UI + broadcast
     const sendMessage = async (content: string, replyTo?: Message) => {
         if (!content.trim()) return;
-
-        // If no user check, assume guest or error, but don't redirect if just offline?
-        // If we have userId, we are good.
         if (!userId) {
-            // Verify if we really are logged out
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push('/login');
-                return;
-            }
-            // If we have session but userId state is null (race condition?), recover it
-            setUserId(session.user.id);
+            router.push('/login');
+            return;
         }
 
         const tempId = 'temp-' + Date.now();
@@ -532,11 +339,11 @@ export function useChat() {
         const optimisticMessage: Message = {
             id: tempId,
             content: trimmedContent,
-            user_id: userId!,
+            user_id: userId,
             created_at: now,
             profiles: {
                 username: username || 'You',
-                avatar_url: profileCache.current.get(userId!)?.avatar_url || '',
+                avatar_url: profileCache.current.get(userId)?.avatar_url || '',
                 role: role
             },
             reply_to_id: replyTo?.id,
@@ -547,39 +354,18 @@ export function useChat() {
                     username: replyTo.profiles.username
                 }
             } : undefined,
-            isPending: true,
-            status: 'sending'
+            isPending: true
         };
 
         // Sort after adding to ensure correct chronological order
         setMessages(prev => {
             const updated = [...prev, optimisticMessage];
-            return sortMessages(updated);
+            return updated.sort((a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
         });
         scrollToBottom();
 
-        // Stop typing status when sent
-        sendTypingEvent(false);
-
-        // Haptic feedback for send action (light impact)
-        try {
-            await Haptics.impact({ style: ImpactStyle.Light });
-        } catch (e) {
-            // Ignore haptic errors on web
-        }
-
-        // Check network status first
-        const status = await Network.getStatus();
-
-        if (!status.connected) {
-            // OFFLINE MODE: Queue it
-            const queue = await get<Message[]>('message_queue') || [];
-            await set('message_queue', [...queue, optimisticMessage]);
-            // Update UI to show it's queued/sending (already 'sending')
-            return; // Done for now
-        }
-
-        // ONLINE: Try sending
         const { data, error } = await supabase
             .from('messages')
             .insert({
@@ -592,55 +378,76 @@ export function useChat() {
 
         if (error) {
             console.error('❌ Error sending message:', error);
+            console.error('❌ Error code:', error.code);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error details:', error.details);
+            setMessages(prev => prev.filter(m => m.id !== tempId));
 
-            // Error -> Add to Queue for retry or mark failed?
-            // If it's a network error, queue it.
-            // If it's permission/ban, fail it.
-            if (error.message.includes('fetch') || error.message.includes('network')) {
-                const queue = await get<Message[]>('message_queue') || [];
-                await set('message_queue', [...queue, optimisticMessage]);
-                // Keep status as 'sending' ideally? Or 'failed' with retry.
-                // Let's keep 'sending' if we auto-queue.
+            if (error.message.includes('banned')) {
+                handleUserRemoved('banned');
             } else {
-                // Mark as failed
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId ? { ...m, isPending: false, status: 'failed' } : m
-                ));
-                try {
-                    await Haptics.notification({ type: NotificationType.Error });
-                } catch (e) { }
-
-                if (error.message.includes('banned')) {
-                    handleUserRemoved('banned');
-                }
+                alert('Failed to send message: ' + error.message);
             }
         } else if (data) {
-            // Update local message with real ID and sent status
-            const realMessage: Message = { ...optimisticMessage, id: data.id, created_at: data.created_at, isPending: false, status: 'sent' };
+            // Update local message with real ID
+            const realMessage: Message = {
+                id: data.id,
+                content: trimmedContent,
+                user_id: userId,
+                created_at: data.created_at,
+                profiles: {
+                    username: username || 'You',
+                    avatar_url: profileCache.current.get(userId)?.avatar_url || '',
+                    role: role
+                },
+                reply_to_id: replyTo?.id,
+                reply_message: replyTo ? {
+                    content: replyTo.content,
+                    user_id: replyTo.user_id,
+                    profiles: {
+                        username: replyTo.profiles.username
+                    }
+                } : undefined,
+                isPending: false
+            };
 
             // Sort after updating to maintain chronological order
             setMessages(prev => {
                 const updated = prev.map(m => m.id === tempId ? realMessage : m);
-                return sortMessages(updated);
+                return updated.sort((a, b) =>
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
             });
 
-            // BROADCAST to other clients
+            // BROADCAST to other clients (instant!)
             if (channelRef.current) {
                 channelRef.current.send({
                     type: 'broadcast',
                     event: 'new_message',
                     payload: realMessage
                 });
+                console.log('📤 Broadcasted message:', realMessage);
             }
-
-            // If we successfully sent a message via REST, we are technically connected to the internet.
-            // Force status to connected to stop the "Connecting..." spinner if it's stuck.
-            setConnectionStatus('connected');
         }
     };
 
     // Delete message function (for admin)
     const broadcastDelete = async (messageId: string) => {
+        // 1. Delete from database
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', messageId);
+
+        if (error) {
+            console.error('❌ Error deleting message from DB:', error);
+            return;
+        }
+
+        // 2. Remove from local state immediately
+        setMessages(current => current.filter(m => m.id !== messageId));
+
+        // 3. Broadcast to other clients
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -653,6 +460,23 @@ export function useChat() {
     // Clear all messages broadcast (for admin)
     const broadcastClearAll = async () => {
         console.log('📤 Broadcasting clear_all...');
+
+        // 1. Delete ALL messages from the database
+        // Uses gt so it applies to all rows (RLS admin-delete policy covers this)
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .gt('created_at', '1970-01-01T00:00:00Z'); // matches all rows
+
+        if (error) {
+            console.error('❌ Error clearing messages from DB:', error);
+            return;
+        }
+
+        // 2. Clear local state immediately
+        setMessages([]);
+
+        // 3. Broadcast to all connected clients
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -660,11 +484,7 @@ export function useChat() {
                 payload: { timestamp: Date.now() }
             });
             console.log('📤 clear_all broadcast sent');
-        } else {
-            console.log('❌ No channel ref available');
         }
-        // Also clear local state
-        setMessages([]);
     };
 
     // Broadcast maintenance mode (for admin)
@@ -702,6 +522,9 @@ export function useChat() {
             console.log('📤 user_deleted broadcast sent:', deletedUserId);
         }
     };
+
+    // Reaction Broadcast - REMOVED, using persistent DB + update broadcast
+    // const [lastReaction, setLastReaction] = useState<{ emoji: string, sender: string, id: string } | null>(null);
 
     const toggleReaction = async (messageId: string, emoji: string) => {
         if (!userId) return;
@@ -755,6 +578,10 @@ export function useChat() {
         } else {
             // Broadcast the new state (data contains the new reactions jsonb)
             if (channelRef.current && data) {
+                // We need to define a new broadcast event type for message updates 
+                // because 'new_message' is for adds.
+                // Actually this app handles 'new_message' by appending.
+                // I'll add 'update_message' event.
                 channelRef.current.send({
                     type: 'broadcast',
                     event: 'update_message',
@@ -764,19 +591,24 @@ export function useChat() {
         }
     };
 
-    // Retry failed message
-    const retryMessage = useCallback(async (msg: Message) => {
-        // Remove failed message
-        setMessages(current => current.filter(m => m.id !== msg.id));
-        // Try sending again
-        await sendMessage(msg.content, msg.reply_message ? { ...msg.reply_message, id: msg.reply_to_id!, created_at: '', profiles: msg.reply_message.profiles } as any : undefined);
-    }, [sendMessage]);
+    // Reconnect function - triggers re-initialization by forcing component remount
+    const reconnect = useCallback(async () => {
+        setConnectionStatus('connecting');
+        if (channelRef.current) {
+            await supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
+        // Re-fetch messages and trigger re-subscription
+        await fetchMessages();
+        // Note: Full reconnection requires component remount or manual re-init
+        // For now, just refresh the page as a simple solution
+        window.location.reload();
+    }, [supabase, fetchMessages]);
 
     return {
         messages,
         setMessages, // Export setMessages for update handler
         sendMessage,
-        retryMessage,
         userId,
         messagesEndRef,
         role,
@@ -790,8 +622,6 @@ export function useChat() {
         broadcastMaintenanceMode,
         broadcastUserBanned,
         broadcastUserDeleted,
-        toggleReaction,
-        sendTypingEvent, // Export new function
-        typingUsers      // Export new state
+        toggleReaction
     };
 }

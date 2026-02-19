@@ -6,36 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { LoginForm } from "@/components/auth/LoginForm";
 import { ModeToggle } from "@/components/mode-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 
-function LoginContent() {
-    const searchParams = useSearchParams();
-    const reason = searchParams.get("reason");
-
-    return (
-        <CardContent>
-            {reason === 'banned' && (
-                <div className="mb-4 p-3 rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-sm font-medium text-center border border-red-200 dark:border-red-800">
-                    <strong>Account Banned</strong>
-                    <p className="mt-1 text-xs">Your account has been banned by an administrator. Contact support if you believe this is an error.</p>
-                </div>
-            )}
-            {reason === 'deleted' && (
-                <div className="mb-4 p-3 rounded-lg bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-sm font-medium text-center border border-orange-200 dark:border-orange-800">
-                    <strong>Account Deleted</strong>
-                    <p className="mt-1 text-xs">Your account has been deleted. You may register again with a new account.</p>
-                </div>
-            )}
-            <LoginForm />
-            <div className="mt-5 text-center text-[10px] text-muted-foreground font-roboto">
-                <p>Developed by <span className="italic">Mike Ryno Santiago</span></p>
-            </div>
-        </CardContent>
-    );
-}
-
-export default function LoginPage() {
+export default function LoginPage({
+    searchParams,
+}: {
+    searchParams?: { [key: string]: string | string[] | undefined };
+}) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background relative px-4">
             <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 flex items-center gap-2">
@@ -54,11 +30,25 @@ export default function LoginPage() {
                     </CardTitle>
                     <CardDescription className="text-xs">Enter your username to login</CardDescription>
                 </CardHeader>
+                <CardContent>
 
-                <Suspense fallback={<CardContent><div className="h-40 flex items-center justify-center">Loading...</div></CardContent>}>
-                    <LoginContent />
-                </Suspense>
-
+                    {searchParams?.reason === 'banned' && (
+                        <div className="mb-4 p-3 rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-sm font-medium text-center border border-red-200 dark:border-red-800">
+                            <strong>Account Banned</strong>
+                            <p className="mt-1 text-xs">Your account has been banned by an administrator. Contact support if you believe this is an error.</p>
+                        </div>
+                    )}
+                    {searchParams?.reason === 'deleted' && (
+                        <div className="mb-4 p-3 rounded-lg bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-sm font-medium text-center border border-orange-200 dark:border-orange-800">
+                            <strong>Account Deleted</strong>
+                            <p className="mt-1 text-xs">Your account has been deleted. You may register again with a new account.</p>
+                        </div>
+                    )}
+                    <LoginForm />
+                    <div className="mt-5 text-center text-[10px] text-muted-foreground font-roboto">
+                        <p>Developed by <span className="italic">Group 1</span></p>
+                    </div>
+                </CardContent>
                 <CardFooter className="flex justify-center pb-5 pt-0">
                     <div className="text-xs text-center">
                         Don't have an account?{" "}

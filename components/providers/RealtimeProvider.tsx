@@ -23,12 +23,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Get current user info & check ban status
         const getUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const user = session?.user;
-
+            const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setUserId(user.id);
-                // Optimistically attempt to fetch profile, ignoring error if offline
                 const { data: profile } = await supabase
                     .from("profiles")
                     .select("role, is_banned")
@@ -50,6 +47,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     // Determine if we should listen based on pathname
     // We only want to re-run the effect if we transition from "should listen" using "should NOT listen" or vice versa
     const shouldListen = !(
+        pathname?.startsWith('/admin') ||
         pathname === '/maintenance' ||
         pathname === '/login' ||
         pathname === '/register'

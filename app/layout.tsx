@@ -6,9 +6,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { MaintenanceListener } from "@/components/system/MaintenanceListener";
 import { ThemeSync } from "@/components/system/ThemeSync";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
+import { MobileNativeProvider } from "@/components/providers/MobileNativeProvider";
 
 import { SplashScreen } from "@/components/ui/splash-screen";
-import { MobileNativeProvider } from "@/components/providers/MobileNativeProvider";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
@@ -66,11 +66,11 @@ export default function RootLayout({
             <ThemeSync />
             {children}
             {/* Positioned at top-center but pushed down to avoid header/status bar on mobile */}
-            <Toaster position="top-center" toastOptions={{ className: "mt-[calc(env(safe-area-inset-top)+60px)]" }} />
+            <Toaster position="top-center" toastOptions={{ className: "mt-[calc(env(safe-area-inset-top)+85px)]" }} />
             <MaintenanceListener />
+            <MobileNativeProvider />
           </TransitionProvider>
           <SplashScreen />
-          <MobileNativeProvider />
         </ThemeProvider>
       </body>
     </html>

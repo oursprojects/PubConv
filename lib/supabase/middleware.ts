@@ -33,14 +33,16 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Retrieve profile to check ban status if user exists
-    let isBanned = false;
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', user.id).single()
-        isBanned = !!profile?.is_banned;
-    }
-
     const path = request.nextUrl.pathname;
+
+    // Retrieve profile to check ban status and role if user exists
+    let isBanned = false;
+    let userRole = 'user';
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('is_banned, role').eq('id', user.id).single()
+        isBanned = !!profile?.is_banned;
+        userRole = profile?.role || 'user';
+    }
 
     // If banned, redirect to banned page (unless already there or logging out)
     if (isBanned && !path.startsWith('/banned')) {
@@ -55,6 +57,25 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(c => redirectRes.cookies.set(c));
 
         return redirectRes;
+    }
+
+    // Check maintenance mode (skip for admins, maintenance page, and auth pages)
+    const isMaintenancePage = path.startsWith('/maintenance');
+    const isAuthPage = path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/banned');
+    const isAdminPage = path.startsWith('/admin');
+
+    if (!isMaintenancePage && !isAuthPage && !isAdminPage && userRole !== 'admin') {
+        // Fetch app_config for maintenance mode
+        const { data: configs } = await supabase.from('app_config').select('key, value').eq('key', 'maintenance_mode').single();
+        const maintenanceValue = configs?.value;
+        const maintenanceMode = maintenanceValue === true || maintenanceValue === 'true';
+
+        if (maintenanceMode) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/maintenance';
+            url.searchParams.set('returnTo', path);
+            return NextResponse.redirect(url);
+        }
     }
 
     // Protected Routes (Add your protected paths here)
@@ -80,3 +101,4 @@ export async function updateSession(request: NextRequest) {
 
     return response
 }
+

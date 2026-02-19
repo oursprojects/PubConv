@@ -1,25 +1,13 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.pubconv.app',
-  appName: 'PubConv',
-  webDir: 'out',
-  plugins: {
-    StatusBar: {
-      style: 'DARK',
-      overlaysWebView: true,
-      backgroundColor: '#ffffff',
-    },
-    SplashScreen: {
-      launchShowDuration: 0,
-      launchAutoHide: true,
-    },
-    Keyboard: {
-      resize: 'body',
-      style: 'DARK',
-      resizeOnFullScreen: true,
-    },
-  },
+    appId: 'com.pubconv.app',
+    appName: 'PubConv',
+    webDir: 'public',
+    server: {
+        url: 'https://pubconv.vercel.app',
+        androidScheme: 'https'
+    }
 };
 
 export default config;

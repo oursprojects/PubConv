@@ -11,6 +11,6 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          curl -f -X GET "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/profiles?select=count&limit=1" \
+          curl -v -f -X GET "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/profiles?select=count&limit=1" \
           -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"

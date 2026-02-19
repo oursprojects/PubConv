@@ -1,5 +1,7 @@
 "use client";
 
+import { useFormStatus } from "react-dom";
+import { updatePassword } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -7,30 +9,40 @@ import { Label } from "@/components/ui/label";
 import { useState, useRef } from "react";
 import { WaveLoader } from "@/components/ui/wave-loader";
 import { toast } from "sonner";
-import { updatePasswordClient } from "@/lib/auth-client";
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+
+    return (
+        <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? (
+                <>
+                    <WaveLoader className="mr-2 h-3" />
+                    Updating...
+                </>
+            ) : (
+                "Update Password"
+            )}
+        </Button>
+    );
+}
 
 export function ChangePasswordForm() {
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+    async function handleSubmit(formData: FormData) {
         setError(null);
-        setLoading(true);
 
-        const formData = new FormData(e.currentTarget);
         const newPassword = formData.get("newPassword") as string;
         const confirmPassword = formData.get("confirmPassword") as string;
 
         if (newPassword !== confirmPassword) {
             setError("New passwords do not match.");
-            setLoading(false);
             return;
         }
 
-        const res = await updatePasswordClient(newPassword, confirmPassword);
-        setLoading(false);
+        const res = await updatePassword(formData);
 
         if (res?.error) {
             toast.error(res.error);
@@ -42,7 +54,7 @@ export function ChangePasswordForm() {
     }
 
     return (
-        <form ref={formRef} onSubmit={handleSubmit} className="grid gap-4">
+        <form ref={formRef} action={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
                 <Label htmlFor="newPassword">New Password</Label>
                 <PasswordInput
@@ -67,16 +79,7 @@ export function ChangePasswordForm() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                    <>
-                        <WaveLoader className="mr-2 h-3" />
-                        Updating...
-                    </>
-                ) : (
-                    "Update Password"
-                )}
-            </Button>
+            <SubmitButton />
         </form>
     );
 }

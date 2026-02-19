@@ -34,14 +34,14 @@ const createThemedSwal = () => {
         cancelButtonColor: colors.cancelButtonColor,
         iconColor: colors.iconColor,
         customClass: {
-            popup: 'rounded-3xl shadow-xl border border-border w-auto max-w-sm p-4', // Smaller popup
-            title: 'text-lg font-semibold text-foreground', // Clearer text
-            htmlContainer: 'text-sm text-muted-foreground',
-            confirmButton: 'rounded-xl px-5 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary', // Strong contrast
-            cancelButton: 'rounded-xl px-5 py-2 text-sm font-medium bg-muted text-foreground hover:bg-muted/80',
-            actions: 'gap-2',
+            popup: 'rounded-3xl shadow-xl border border-border',
+            title: 'text-foreground font-semibold',
+            htmlContainer: 'text-muted-foreground',
+            confirmButton: 'rounded-xl px-6 py-2 font-medium !text-white',
+            cancelButton: 'rounded-xl px-6 py-2 font-medium !text-foreground',
+            actions: 'gap-3',
         },
-        buttonsStyling: false, // Important to disable default swal styles to let customClass take over
+        buttonsStyling: true,
         showClass: {
             popup: 'animate-in fade-in zoom-in-95 duration-200',
         },

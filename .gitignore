@@ -23,6 +23,16 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+.gradle/
+*.log
+local.properties
+
+# Android build artifacts & large Gradle binaries
+android/.gradle/
+android/build/
+android/app/build/
+android/gradle/wrapper/gradle-*.zip
 
 # debug
 npm-debug.log*
@@ -39,14 +49,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Android
-android/
-android/.gradle
-android/local.properties
-android/captures
-
-# iOS
-ios/
-ios/App/App/public
-
