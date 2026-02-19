@@ -25,6 +25,24 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@capacitor/core": [
+        "./lib/capacitor-stubs.js"
+      ],
+      "@capacitor/status-bar": [
+        "./lib/capacitor-stubs.js"
+      ],
+      "@capacitor/network": [
+        "./lib/capacitor-stubs.js"
+      ],
+      "@capacitor/app": [
+        "./lib/capacitor-stubs.js"
+      ],
+      "@capacitor/haptics": [
+        "./lib/capacitor-stubs.js"
+      ],
+      "@capacitor/keyboard": [
+        "./lib/capacitor-stubs.js"
       ]
     }
   },
