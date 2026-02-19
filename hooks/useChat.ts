@@ -445,6 +445,19 @@ export function useChat() {
     // Clear all messages broadcast (for admin)
     const broadcastClearAll = async () => {
         console.log('📤 Broadcasting clear_all...');
+
+        // 1. Delete ALL messages from the database first
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all rows
+
+        if (error) {
+            console.error('❌ Error clearing messages from DB:', error);
+            return; // Don't broadcast if DB delete failed
+        }
+
+        // 2. Broadcast to all connected clients
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -455,7 +468,8 @@ export function useChat() {
         } else {
             console.log('❌ No channel ref available');
         }
-        // Also clear local state
+
+        // 3. Clear local state
         setMessages([]);
     };
 
