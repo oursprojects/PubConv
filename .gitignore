@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+.gradle/
+*.log
+local.properties
 
 # debug
 npm-debug.log*

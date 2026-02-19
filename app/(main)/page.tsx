@@ -94,7 +94,7 @@ export default async function DashboardPage() {
         {/* Footer */}
         <div className="text-center mt-auto animate-in fade-in-0 duration-700" style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
           <p className="text-xs text-muted-foreground">
-            Developed by <span className="font-semibold text-primary">Mike Ryno Santiago</span>
+            Developed by <span className="font-semibold text-primary">Group 1</span>
           </p>
           <a href="/terms" className="text-xs text-muted-foreground hover:text-primary mt-1 inline-block">
             Terms & Conditions

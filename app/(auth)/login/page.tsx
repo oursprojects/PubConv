@@ -46,7 +46,7 @@ export default function LoginPage({
                     )}
                     <LoginForm />
                     <div className="mt-5 text-center text-[10px] text-muted-foreground font-roboto">
-                        <p>Developed by <span className="italic">Mike Ryno Santiago</span></p>
+                        <p>Developed by <span className="italic">Group 1</span></p>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-center pb-5 pt-0">
