@@ -28,6 +28,12 @@
 *.log
 local.properties
 
+# Android build artifacts & large Gradle binaries
+android/.gradle/
+android/build/
+android/app/build/
+android/gradle/wrapper/gradle-*.zip
+
 # debug
 npm-debug.log*
 yarn-debug.log*
