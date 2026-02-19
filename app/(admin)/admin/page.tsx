@@ -30,8 +30,10 @@ export default async function AdminPage() {
     const { data: configs } = await supabase.from("app_config").select("*");
     console.log("[Admin] Raw configs:", configs);
 
-    const maintenanceMode = configs?.find((c) => c.key === "maintenance_mode")?.value || false;
-    const disableSignup = configs?.find((c) => c.key === "disable_signup")?.value || false;
+    const maintenanceMode_raw = configs?.find((c) => c.key === "maintenance_mode")?.value;
+    const maintenanceMode = maintenanceMode_raw === true || maintenanceMode_raw === 'true';
+    const disableSignup_raw = configs?.find((c) => c.key === "disable_signup")?.value;
+    const disableSignup = disableSignup_raw === true || disableSignup_raw === 'true';
 
     // Handle rate limit value - could be number, string, or nested object
     const rateLimitConfig = configs?.find((c) => c.key === "message_rate_limit");
