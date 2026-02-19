@@ -22,7 +22,8 @@ export default async function MainLayout({
     }
 
     const { data: configs } = await supabase.from("app_config").select("*");
-    const maintenanceMode = configs?.find((c: any) => c.key === "maintenance_mode")?.value || false;
+    const maintenanceModeRaw = configs?.find((c: any) => c.key === "maintenance_mode")?.value;
+    const maintenanceMode = maintenanceModeRaw === true || maintenanceModeRaw === 'true';
 
     // Check if user is banned
     if (user) {
