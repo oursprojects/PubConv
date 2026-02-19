@@ -433,6 +433,21 @@ export function useChat() {
 
     // Delete message function (for admin)
     const broadcastDelete = async (messageId: string) => {
+        // 1. Delete from database
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', messageId);
+
+        if (error) {
+            console.error('❌ Error deleting message from DB:', error);
+            return;
+        }
+
+        // 2. Remove from local state immediately
+        setMessages(current => current.filter(m => m.id !== messageId));
+
+        // 3. Broadcast to other clients
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -446,18 +461,22 @@ export function useChat() {
     const broadcastClearAll = async () => {
         console.log('📤 Broadcasting clear_all...');
 
-        // 1. Delete ALL messages from the database first
+        // 1. Delete ALL messages from the database
+        // Uses gt so it applies to all rows (RLS admin-delete policy covers this)
         const { error } = await supabase
             .from('messages')
             .delete()
-            .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all rows
+            .gt('created_at', '1970-01-01T00:00:00Z'); // matches all rows
 
         if (error) {
             console.error('❌ Error clearing messages from DB:', error);
-            return; // Don't broadcast if DB delete failed
+            return;
         }
 
-        // 2. Broadcast to all connected clients
+        // 2. Clear local state immediately
+        setMessages([]);
+
+        // 3. Broadcast to all connected clients
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -465,12 +484,7 @@ export function useChat() {
                 payload: { timestamp: Date.now() }
             });
             console.log('📤 clear_all broadcast sent');
-        } else {
-            console.log('❌ No channel ref available');
         }
-
-        // 3. Clear local state
-        setMessages([]);
     };
 
     // Broadcast maintenance mode (for admin)

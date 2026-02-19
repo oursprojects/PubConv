@@ -83,6 +83,14 @@ CREATE POLICY "Messages are viewable by everyone." ON messages
 CREATE POLICY "Authenticated users can insert messages." ON messages
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- Admins can delete any message (by role check)
+CREATE POLICY "Admins can delete any message." ON messages
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 -- feedbacks
 ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
 
