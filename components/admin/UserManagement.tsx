@@ -7,7 +7,7 @@ import { AnimatedButton } from "@/components/ui/animated-button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Search, Ban, CheckCircle, Trash2, AlertTriangle } from "lucide-react";
-import { toggleBanUser, getUsers, deleteUser } from "@/app/(admin)/admin/actions";
+import { toggleBanUser, getUsers, deleteUser } from "@/app/(main)/admin/actions";
 import { useAdminBroadcast } from "@/hooks/useAdminBroadcast";
 import {
     AlertDialog,

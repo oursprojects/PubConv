@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { usePathname, useRouter } from "next/navigation";
 
 export function MobileNativeProvider() {
-    const lastConnectedRef = useRef<boolean>(true);
     const pathname = usePathname();
     const router = useRouter();
 
@@ -26,28 +25,6 @@ export function MobileNativeProvider() {
                 console.error("Status bar error:", e);
             }
 
-            // 2. Network Status
-            try {
-                const { Network } = await import("@capacitor/network");
-                const status = await Network.getStatus();
-                lastConnectedRef.current = status.connected;
-
-                const handleNetworkStatusChange = (status: { connected: boolean }) => {
-                    if (status.connected === lastConnectedRef.current) return;
-                    toast.dismiss("network-status");
-                    if (status.connected) {
-                        toast.success("Back online", { id: "network-status", duration: 3000 });
-                    } else {
-                        toast.error("You are offline", { id: "network-status", duration: Infinity });
-                    }
-                    lastConnectedRef.current = status.connected;
-                };
-
-                const netListener = await Network.addListener("networkStatusChange", handleNetworkStatusChange);
-                listeners.push(netListener);
-            } catch (e) {
-                console.error("Network error:", e);
-            }
 
             // 3. App Lifecycle & Back Button
             try {

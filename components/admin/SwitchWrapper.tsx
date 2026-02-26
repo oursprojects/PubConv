@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Switch } from "@/components/ui/switch";
-import { updateSystemConfig } from "@/app/(admin)/admin/actions";
+import { updateSystemConfig } from "@/app/(main)/admin/actions";
 import { useAdminBroadcast } from "@/hooks/useAdminBroadcast";
 import {
     AlertDialog,

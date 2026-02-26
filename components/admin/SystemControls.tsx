@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { updateSystemConfig } from "@/app/(admin)/admin/actions";
+import { updateSystemConfig } from "@/app/(main)/admin/actions";
 import { useAdminBroadcast } from "@/hooks/useAdminBroadcast";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { Loader2 } from "lucide-react";

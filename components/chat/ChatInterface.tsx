@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef, useEffect } from "react";
 import { Send, Info, Reply, X, Smile, Trash2, RefreshCw } from "lucide-react";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
-import { deleteMessage, clearAllMessages } from "@/app/(admin)/admin/actions";
+import { deleteMessage, clearAllMessages } from "@/app/(main)/admin/actions";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useAutoAnimate } from "@formkit/auto-animate/react";

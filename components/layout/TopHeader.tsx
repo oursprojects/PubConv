@@ -11,6 +11,8 @@ import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
 import { toast } from "sonner";
+import { useNetwork } from "@/components/providers/NetworkProvider";
+import { WifiOff } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,6 +42,7 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = React.useState(false);
     const [isOpen, setIsOpen] = React.useState(false);
+    const { isOffline } = useNetwork();
 
     const handleLogout = async () => {
         // Show confirmation dialog
@@ -54,6 +57,11 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
         );
 
         if (!result.isConfirmed) return;
+
+        if (isOffline) {
+            toast.error("You cannot sign out while offline.");
+            return;
+        }
 
         setIsLoggingOut(true);
         toast.loading("Signing out...");
@@ -78,6 +86,12 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <img src="/logo.png" alt="PubConv" className="h-6 w-auto" />
                     <span className="md:inline-block font-bold font-poppins">PubConv</span>
+                    {isOffline && (
+                        <div className="flex items-center gap-1 bg-destructive/10 text-destructive text-[10px] px-2 py-0.5 rounded-full border border-destructive/20 ml-1">
+                            <WifiOff className="h-3 w-3" />
+                            <span>OFFLINE</span>
+                        </div>
+                    )}
                 </Link>
 
                 {/* Current Date */}
@@ -226,10 +240,11 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 disabled={isLoggingOut}
                             >
                                 <div className={cn(
-                                    "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 transition-all duration-200 cursor-pointer",
-                                    isLoggingOut && "opacity-50 cursor-not-allowed"
+                                    "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground transition-all duration-200 cursor-pointer",
+                                    (isLoggingOut || isOffline) && "opacity-50 cursor-not-allowed",
+                                    !isOffline && "hover:bg-muted hover:text-foreground hover:scale-105"
                                 )}
-                                    title="Log out"
+                                    title={isOffline ? "Logout disabled (Offline)" : "Log out"}
                                 >
                                     {isLoggingOut ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />

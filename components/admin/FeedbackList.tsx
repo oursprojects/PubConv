@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { Trash2, Calendar, MessageCircle, AlertTriangle, Loader2, Bell } from "lucide-react";
-import { deleteFeedback } from "@/app/(admin)/admin/actions";
+import { deleteFeedback } from "@/app/(main)/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import {
     AlertDialog,

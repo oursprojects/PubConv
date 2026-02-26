@@ -7,6 +7,7 @@ import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import PageTransition from "@/components/page-transition";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useNetwork } from "@/components/providers/NetworkProvider";
 
 export default function MainLayout({
     children,
@@ -18,6 +19,7 @@ export default function MainLayout({
     const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
     const [maintenanceMode, setMaintenanceMode] = React.useState(false);
     const [loading, setLoading] = React.useState(true);
+    const { isOffline } = useNetwork();
     const router = useRouter();
     const supabase = createClient();
 
@@ -30,7 +32,13 @@ export default function MainLayout({
                 if (!isMounted) return;
 
                 if (!user) {
-                    router.push('/login');
+                    // Only redirect to login if we are online. 
+                    // If offline, we stay on the dashboard to allow local viewing.
+                    if (!isOffline) {
+                        router.push('/login');
+                    } else {
+                        setLoading(false);
+                    }
                     return;
                 }
 
