@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { login } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -29,13 +30,20 @@ function SubmitButton() {
 
 export function LoginForm() {
     const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
     async function handleSubmit(formData: FormData) {
         setError(null);
         toast.loading("Logging in...");
         const res = await login(formData);
         toast.dismiss();
-        // If we get here, login returned an error (success redirects server-side)
+
+        if (res?.success) {
+            toast.success("Login successful!");
+            router.push("/");
+            return;
+        }
+
         if (res?.error) {
             setError(res.error);
             toast.error(res.error);

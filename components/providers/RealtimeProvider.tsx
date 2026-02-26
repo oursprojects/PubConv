@@ -23,22 +23,26 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Get current user info & check ban status
         const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUserId(user.id);
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("role, is_banned")
-                    .eq("id", user.id)
-                    .single();
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserId(user.id);
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("role, is_banned")
+                        .eq("id", user.id)
+                        .single();
 
-                if (profile?.is_banned) {
-                    await supabase.auth.signOut();
-                    router.push('/banned?reason=banned');
-                    return;
+                    if (profile?.is_banned) {
+                        await supabase.auth.signOut();
+                        router.push('/banned?reason=banned');
+                        return;
+                    }
+
+                    setUserRole(profile?.role || "user");
                 }
-
-                setUserRole(profile?.role || "user");
+            } catch (err) {
+                console.error("RealtimeProvider user fetch error:", err);
             }
         };
         getUser();

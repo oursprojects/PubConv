@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { signup } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -72,8 +73,8 @@ function PasswordStrengthBar({ password }: { password: string }) {
                 ))}
             </div>
             <p className={`text-[10px] transition-colors ${strength.level === 1 ? 'text-red-500' :
-                    strength.level === 2 ? 'text-yellow-600 dark:text-yellow-400' :
-                        'text-green-600 dark:text-green-400'
+                strength.level === 2 ? 'text-yellow-600 dark:text-yellow-400' :
+                    'text-green-600 dark:text-green-400'
                 }`}>
                 {strength.label}
             </p>
@@ -87,6 +88,7 @@ export function RegisterForm() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const recaptchaRef = useRef<RecaptchaRef>(null);
+    const router = useRouter();
 
     // Live validation rules (all client-side, no API calls = free)
     const validation = useMemo(() => {
@@ -120,7 +122,17 @@ export function RegisterForm() {
         toast.loading("Creating account...");
         const res = await signup(formData);
         toast.dismiss();
-        // If we get here, signup returned an error (success redirects server-side)
+
+        if (res?.success) {
+            toast.success("Account created successfully!");
+            if (res.session) {
+                router.push("/");
+            } else {
+                router.push("/login?reason=registered");
+            }
+            return;
+        }
+
         if (res?.error) {
             setError(res.error);
             toast.error(res.error);

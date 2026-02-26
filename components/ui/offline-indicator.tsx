@@ -9,54 +9,67 @@ export function OfflineIndicator() {
     const [isReconnecting, setIsReconnecting] = useState(false);
 
     useEffect(() => {
-        // Check initial state
-        setIsOnline(navigator.onLine);
+        let listener: { remove: () => void } | undefined;
 
-        const handleOnline = () => {
-            setIsOnline(true);
-            setIsReconnecting(false);
+        const init = async () => {
+            try {
+                const { Network } = await import("@capacitor/network");
+                const { Capacitor } = await import("@capacitor/core");
+
+                if (!Capacitor.isNativePlatform()) {
+                    setIsOnline(navigator.onLine);
+                    const handleOnline = () => setIsOnline(true);
+                    const handleOffline = () => setIsOnline(false);
+                    window.addEventListener("online", handleOnline);
+                    window.addEventListener("offline", handleOffline);
+                    return () => {
+                        window.removeEventListener("online", handleOnline);
+                        window.removeEventListener("offline", handleOffline);
+                    };
+                }
+
+                const status = await Network.getStatus();
+                setIsOnline(status.connected);
+
+                listener = await Network.addListener("networkStatusChange", (status) => {
+                    setIsOnline(status.connected);
+                });
+            } catch (e) {
+                // Fallback to navigator if plugin fails
+                setIsOnline(navigator.onLine);
+            }
         };
 
-        const handleOffline = () => {
-            setIsOnline(false);
-            setIsReconnecting(false);
-        };
-
-        window.addEventListener("online", handleOnline);
-        window.addEventListener("offline", handleOffline);
+        init();
 
         return () => {
-            window.removeEventListener("online", handleOnline);
-            window.removeEventListener("offline", handleOffline);
+            listener?.remove();
         };
     }, []);
 
-    // Auto-reconnect attempt every 5 seconds when offline
+    // Health check logic remain similar but could be more robust
     useEffect(() => {
         if (!isOnline) {
             const checkConnection = setInterval(async () => {
                 setIsReconnecting(true);
                 try {
-                    // Try to fetch a small resource to check connectivity
-                    const response = await fetch('/api/health', {
+                    // Try to fetch a reliable public resource or Supabase URL
+                    const response = await fetch('https://www.google.com/favicon.ico', {
                         method: 'HEAD',
+                        mode: 'no-cors',
                         cache: 'no-store'
                     });
-                    if (response.ok) {
-                        setIsOnline(true);
-                        setIsReconnecting(false);
-                    }
+                    setIsOnline(true);
+                    setIsReconnecting(false);
                 } catch {
-                    // Still offline
                     setIsReconnecting(false);
                 }
-            }, 5000);
+            }, 10000);
 
             return () => clearInterval(checkConnection);
         }
     }, [isOnline]);
 
-    // Don't render anything if online
     if (isOnline) return null;
 
     return (

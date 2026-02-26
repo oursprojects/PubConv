@@ -33,7 +33,7 @@ export const Network = {
 export const App = {
     addListener: async (
         _event: string,
-        _handler: () => void
+        _handler: (data: any) => void
     ): Promise<{ remove: () => void }> => ({ remove: () => { } }),
     exitApp: (): void => { },
 };
@@ -53,6 +53,21 @@ export const Keyboard = {
     hide: async (): Promise<void> => { },
     addListener: async (
         _event: string,
-        _handler: () => void
+        _handler: (data: any) => void
     ): Promise<{ remove: () => void }> => ({ remove: () => { } }),
+};
+
+// @capacitor/splash-screen
+export const SplashScreen = {
+    show: async (_options?: { showDuration?: number; autoHide?: boolean }): Promise<void> => { },
+    hide: async (_options?: { fadeDuration?: number }): Promise<void> => { },
+};
+
+// @capacitor/preferences
+export const Preferences = {
+    get: async (options: { key: string }): Promise<{ value: string | null }> => ({ value: null }),
+    set: async (options: { key: string; value: string }): Promise<void> => { },
+    remove: async (options: { key: string }): Promise<void> => { },
+    clear: async (): Promise<void> => { },
+    keys: async (): Promise<{ keys: string[] }> => ({ keys: [] }),
 };

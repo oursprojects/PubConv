@@ -1,6 +1,9 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Globe, Search, UserCircle, Send, CalendarDays, Info } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { Globe, Search, UserCircle, Send, CalendarDays, Info } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
@@ -46,22 +49,45 @@ function getGreeting(): string {
   return "Good day";
 }
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function DashboardPage() {
+  const [user, setUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const supabase = createClient();
 
-  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
+  React.useEffect(() => {
+    async function loadUser() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        console.error("Error loading user:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadUser();
+  }, [supabase]);
+
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-8 bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full w-full overflow-hidden flex flex-col">
-      <div className="flex flex-col flex-1 px-6 py-6 md:p-8 max-w-md mx-auto w-full">
+    <div className="h-full w-full overflow-hidden flex flex-col bg-background">
+      <div className="flex flex-col flex-1 px-6 py-8 md:p-12 max-w-2xl mx-auto w-full overflow-y-auto">
         {/* Greeting - Centered */}
-        <div className="text-center mb-6 md:mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-          <h1 className="text-2xl md:text-3xl font-bold mb-1">
-            {getGreeting()}, {displayName}!
+        <div className="text-center mb-8 md:mb-12 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+            {getGreeting()}{displayName ? `, ${displayName}` : ""}!
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome to PubConv! Glad you're here.
+          <p className="text-base text-muted-foreground max-w-sm mx-auto">
+            Welcome to PubConv! Everything you need is right at your fingertips.
           </p>
         </div>
 

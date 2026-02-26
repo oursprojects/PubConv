@@ -3,9 +3,8 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
     appId: 'com.pubconv.app',
     appName: 'PubConv',
-    webDir: 'public',
+    webDir: 'out',
     server: {
-        url: 'https://pubconv.vercel.app',
         androidScheme: 'https'
     }
 };

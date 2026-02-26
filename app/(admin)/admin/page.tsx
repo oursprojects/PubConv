@@ -1,61 +1,99 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { getUsers, getFeedbacks } from "./actions";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { FeedbackList } from "@/components/admin/FeedbackList";
 import { SystemControls } from "@/components/admin/SystemControls";
+import { createClient } from "@/lib/supabase/client";
 
-export default async function AdminPage() {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+export default function AdminPage() {
+    const [user, setUser] = React.useState<any>(null);
+    const [profile, setProfile] = React.useState<any>(null);
+    const [configs, setConfigs] = React.useState<any[]>([]);
+    const [users, setUsers] = React.useState<any[]>([]);
+    const [feedbacks, setFeedbacks] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
+    const router = useRouter();
+    const supabase = createClient();
 
-    if (!user) return redirect("/login");
+    React.useEffect(() => {
+        async function loadAdminData() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    router.push("/login");
+                    return;
+                }
+                setUser(user);
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("role")
+                    .eq("id", user.id)
+                    .single();
 
-    if (profile?.role !== "admin") {
-        return redirect("/");
+                if (profile?.role !== "admin") {
+                    router.push("/");
+                    return;
+                }
+                setProfile(profile);
+
+                // Fetch configs
+                const { data: configsData } = await supabase.from("app_config").select("*");
+                setConfigs(configsData || []);
+
+                // Fetch users (direct call instead of actions.ts)
+                const { data: usersData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('id', { ascending: false });
+                setUsers(usersData || []);
+
+                // Fetch feedbacks (direct call instead of actions.ts)
+                const { data: feedbacksData } = await supabase
+                    .from('feedbacks')
+                    .select('*, profiles(username)')
+                    .order('created_at', { ascending: false });
+                setFeedbacks(feedbacksData || []);
+
+            } catch (error) {
+                console.error("Error loading admin data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadAdminData();
+    }, [supabase, router]);
+
+    if (loading) {
+        return (
+            <div className="container mx-auto p-8 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
     }
-
-    // Fetch data
-    const { data: configs } = await supabase.from("app_config").select("*");
-    console.log("[Admin] Raw configs:", configs);
 
     const maintenanceMode_raw = configs?.find((c) => c.key === "maintenance_mode")?.value;
     const maintenanceMode = maintenanceMode_raw === true || maintenanceMode_raw === 'true';
     const disableSignup_raw = configs?.find((c) => c.key === "disable_signup")?.value;
     const disableSignup = disableSignup_raw === true || disableSignup_raw === 'true';
 
-    // Handle rate limit value - could be number, string, or nested object
     const rateLimitConfig = configs?.find((c) => c.key === "message_rate_limit");
-    console.log("[Admin] Rate limit config:", rateLimitConfig);
-
     let rateLimit = 0;
     if (rateLimitConfig?.value !== undefined && rateLimitConfig?.value !== null) {
-        // Handle different value formats
         const val = rateLimitConfig.value;
         if (typeof val === 'number') {
             rateLimit = val;
         } else if (typeof val === 'string') {
             rateLimit = parseInt(val, 10) || 0;
         } else if (typeof val === 'object' && val !== null) {
-            // In case it's stored as an object like { value: 5 }
             rateLimit = Number(val) || 0;
         }
     }
-    console.log("[Admin] Parsed rate limit:", rateLimit);
-
-    const initialUsers = await getUsers();
-    const feedbacks = await getFeedbacks();
 
     return (
         <div className="container mx-auto p-4 md:py-8 flex flex-col gap-6 max-w-5xl">
@@ -84,7 +122,7 @@ export default async function AdminPage() {
                         </CardHeader>
                         <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
                             <div className="h-full w-full">
-                                <UserManagement initialUsers={initialUsers} />
+                                <UserManagement initialUsers={users} />
                             </div>
                         </CardContent>
                     </Card>

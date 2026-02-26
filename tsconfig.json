@@ -43,6 +43,12 @@
       ],
       "@capacitor/keyboard": [
         "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/splash-screen": [
+        "./lib/capacitor-stubs.ts"
+      ],
+      "@capacitor/preferences": [
+        "./lib/capacitor-stubs.ts"
       ]
     }
   },

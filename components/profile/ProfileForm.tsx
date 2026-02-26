@@ -71,7 +71,45 @@ export function ProfileForm({ profile }: { profile: any }) {
     const [editorImage, setEditorImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    async function handleAvatarClick() {
+        if (isCooldownActive) return;
+
+        try {
+            const { Capacitor } = await import('@capacitor/core');
+
+            if (Capacitor.isNativePlatform()) {
+                const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+                const image = await Camera.getPhoto({
+                    quality: 90,
+                    allowEditing: false,
+                    resultType: CameraResultType.Uri,
+                    source: CameraSource.Photos, // Gallery
+                    promptLabelHeader: 'Change Avatar',
+                    promptLabelPhoto: 'From Gallery',
+                    promptLabelPicture: 'Take Picture',
+                });
+
+                if (image.webPath) {
+                    const response = await fetch(image.webPath);
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+
+                    setEditorImage(objectUrl);
+                    setEditorOpen(true);
+                }
+            } else {
+                // Fallback for Web
+                fileInputRef.current?.click();
+            }
+        } catch (error: any) {
+            console.error("Camera error:", error);
+            if (error.message !== 'User cancelled photos app') {
+                setMessage({ type: 'error', text: "Failed to open gallery. Check permissions." });
+            }
+        }
+    }
+
+    async function handleWebFileChange(event: React.ChangeEvent<HTMLInputElement>) {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
             try {
@@ -144,19 +182,19 @@ export function ProfileForm({ profile }: { profile: any }) {
                         {/* Only show "Change" if NOT on cooldown */}
                         {!isCooldownActive ? (
                             <>
-                                <Label
-                                    htmlFor="avatar-upload"
+                                <div
+                                    onClick={handleAvatarClick}
                                     className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[10px] text-center py-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-b-full"
                                 >
                                     Change
-                                </Label>
+                                </div>
                                 <Input
                                     ref={fileInputRef}
                                     id="avatar-upload"
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
-                                    onChange={handleFileChange}
+                                    onChange={handleWebFileChange}
                                     disabled={isCooldownActive}
                                 />
                             </>

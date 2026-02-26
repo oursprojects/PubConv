@@ -1,21 +1,42 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
-import { Ban, Construction } from "lucide-react";
+import { Ban, Construction, Loader2 } from "lucide-react";
 
-export default async function RegisterPage() {
-    const supabase = await createClient();
-    const { data: configs } = await supabase.from("app_config").select("*");
+export default function RegisterPage() {
+    const [configs, setConfigs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const supabase = createClient();
+
+    useEffect(() => {
+        async function fetchConfigs() {
+            const { data } = await supabase.from("app_config").select("*");
+            if (data) setConfigs(data);
+            setLoading(false);
+        }
+        fetchConfigs();
+    }, [supabase]);
 
     const disableSignupValue = configs?.find((c) => c.key === "disable_signup")?.value;
     const disableSignup = disableSignupValue === true || disableSignupValue === "true";
 
     const maintenanceValue = configs?.find((c) => c.key === "maintenance_mode")?.value;
     const maintenanceMode = maintenanceValue === true || maintenanceValue === "true";
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     // Show maintenance message if maintenance mode is active
     if (maintenanceMode) {

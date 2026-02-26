@@ -12,48 +12,52 @@ export function ThemeSync() {
 
     useEffect(() => {
         const syncTheme = async () => {
-            // Exclude auth routes
-            if (pathname?.includes('/login') || pathname?.includes('/register')) {
-                document.documentElement.removeAttribute('data-theme');
-                return;
-            }
+            try {
+                // Exclude auth routes
+                if (pathname?.includes('/login') || pathname?.includes('/register')) {
+                    document.documentElement.removeAttribute('data-theme');
+                    return;
+                }
 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-            const { data } = await supabase
-                .from('profiles')
-                .select('theme')
-                .eq('id', user.id)
-                .single();
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('theme')
+                    .eq('id', user.id)
+                    .single();
 
-            if (data?.theme) {
-                document.documentElement.setAttribute('data-theme', data.theme);
-            }
+                if (data?.theme) {
+                    document.documentElement.setAttribute('data-theme', data.theme);
+                }
 
-            // Real-time Sync: Listen for changes to the user's profile theme
-            const channel = supabase
-                .channel(`theme_sync_${user.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'profiles',
-                        filter: `id=eq.${user.id}`,
-                    },
-                    (payload: any) => {
-                        const newTheme = payload.new.theme;
-                        if (newTheme) {
-                            document.documentElement.setAttribute('data-theme', newTheme);
+                // Real-time Sync: Listen for changes to the user's profile theme
+                const channel = supabase
+                    .channel(`theme_sync_${user.id}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${user.id}`,
+                        },
+                        (payload: any) => {
+                            const newTheme = payload.new.theme;
+                            if (newTheme) {
+                                document.documentElement.setAttribute('data-theme', newTheme);
+                            }
                         }
-                    }
-                )
-                .subscribe();
+                    )
+                    .subscribe();
 
-            return () => {
-                supabase.removeChannel(channel);
-            };
+                return () => {
+                    supabase.removeChannel(channel);
+                };
+            } catch (error) {
+                console.error("ThemeSync fetch error:", error);
+            }
         };
 
         const cleanupPromise = syncTheme();

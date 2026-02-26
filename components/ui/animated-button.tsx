@@ -29,7 +29,18 @@ import { cn } from "@/lib/utils";
 const MotionButtonBase = motion(Button);
 
 export const AnimatedButton = React.forwardRef<HTMLButtonElement, ButtonProps & HTMLMotionProps<"button">>(
-    ({ className, ...props }, ref) => {
+    ({ className, onClick, ...props }, ref) => {
+        const handleClick = (e: any) => {
+            try {
+                if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform()) {
+                    import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+                        Haptics.impact({ style: ImpactStyle.Light }).catch(() => { });
+                    });
+                }
+            } catch (err) { }
+            if (onClick) onClick(e);
+        };
+
         return (
             <MotionButtonBase
                 ref={ref}
@@ -37,6 +48,7 @@ export const AnimatedButton = React.forwardRef<HTMLButtonElement, ButtonProps & 
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 className={cn(className)}
+                onClick={handleClick}
                 {...props}
             />
         );

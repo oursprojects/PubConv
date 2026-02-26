@@ -1,48 +1,88 @@
+"use client";
+
+import * as React from "react";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { MaintenanceScreen } from "@/components/maintenance-screen";
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import PageTransition from "@/components/page-transition";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { BottomNav } from "@/components/layout/BottomNav";
 
-export default async function MainLayout({
+export default function MainLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const [user, setUser] = React.useState<any>(null);
+    const [role, setRole] = React.useState('user');
+    const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+    const [maintenanceMode, setMaintenanceMode] = React.useState(false);
+    const [loading, setLoading] = React.useState(true);
+    const router = useRouter();
+    const supabase = createClient();
 
-    let role = 'user';
-    let avatarUrl = null;
-    if (user) {
-        const { data } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single();
-        role = data?.role || 'user';
-        avatarUrl = data?.avatar_url;
-    }
+    React.useEffect(() => {
+        let isMounted = true;
 
-    const { data: configs } = await supabase.from("app_config").select("*");
-    const maintenanceModeRaw = configs?.find((c: any) => c.key === "maintenance_mode")?.value;
-    const maintenanceMode = maintenanceModeRaw === true || maintenanceModeRaw === 'true';
+        async function loadInitialData() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!isMounted) return;
 
-    // Check if user is banned
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', user.id).single();
-        if (profile?.is_banned) {
-            // Force signout not directly possible in server component, but we can redirect to /banned
-            // Ideally, we'd sign them out via an API route or middleware, but redirecting to /banned or /login handles the UX.
-            // But since /banned has no auth middleware protection (it's public), it's fine.
-            // However, we want them completely locked out.
-            // Let's redirect to /login with error after signing out via a client component or just blocking here.
+                if (!user) {
+                    router.push('/login');
+                    return;
+                }
 
-            // Actually, if we redirect to /banned, the RealtimeProvider (which *does* run on /banned?)
-            // Wait, RealtimeProvider stops on /banned? No, it's NOT in the exclusion list!
-            // checks exclusion: admin, maintenance, login, register.
-            // So on /banned, RealtimeProvider runs. And it listens for 'user_banned' broadcast.
-            // But on /banned page, we should also manually check status and signout?
-            // For now, let's redirect to /banned page explicitly if they try to access main layout.
-            redirect('/banned?reason=banned');
+                setUser(user);
+
+                // ... rest of loading logic
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('role, avatar_url, is_banned')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile?.is_banned) {
+                        router.push('/banned?reason=banned');
+                        return;
+                    }
+
+                    setRole(profile?.role || 'user');
+                    setAvatarUrl(profile?.avatar_url);
+                }
+
+                const { data: configs } = await supabase.from("app_config").select("*");
+                const maintenanceModeRaw = configs?.find((c: any) => c.key === "maintenance_mode")?.value;
+                const isMaintenance = maintenanceModeRaw === true || maintenanceModeRaw === 'true';
+                setMaintenanceMode(isMaintenance);
+
+            } catch (error) {
+                console.error("Error loading layout data:", error);
+            } finally {
+                if (isMounted) setLoading(false);
+            }
         }
+
+        loadInitialData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [supabase, router]);
+
+    if (loading) {
+        return (
+            <div className="h-[100dvh] w-full flex flex-col bg-background">
+                <TopHeader user={null} role="user" avatarUrl={null} />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+                <BottomNav />
+            </div>
+        );
     }
 
     if (maintenanceMode && role !== 'admin') {
@@ -52,16 +92,15 @@ export default async function MainLayout({
     return (
         <RealtimeProvider>
             <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
-                {/* Header stays static - outside of PageTransition */}
                 <TopHeader user={user} role={role} avatarUrl={avatarUrl} />
-                <div className="flex-1 w-full min-h-0 flex flex-col">
+                <div className="flex-1 w-full min-h-0 flex flex-col pb-16 md:pb-0">
                     <main className="flex-1 w-full min-h-0 overflow-hidden">
-                        {/* Only page content animates */}
                         <PageTransition>
                             {children}
                         </PageTransition>
                     </main>
                 </div>
+                <BottomNav />
             </div>
         </RealtimeProvider>
     );

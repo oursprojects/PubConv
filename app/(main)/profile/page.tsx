@@ -1,31 +1,56 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { UserCog, Shield } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-export default async function ProfilePage() {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+export default function ProfilePage() {
+    const [user, setUser] = React.useState<any>(null);
+    const [profile, setProfile] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+    const router = useRouter();
+    const supabase = createClient();
 
-    if (!user) {
-        redirect("/login");
+    React.useEffect(() => {
+        async function loadProfileData() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    router.push("/login");
+                    return;
+                }
+                setUser(user);
+
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", user.id)
+                    .single();
+                setProfile(profile);
+            } catch (error) {
+                console.error("Error loading profile data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadProfileData();
+    }, [supabase, router]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
     }
-
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
 
     return (
         <div className="flex flex-col gap-6 max-w-lg mx-auto px-4 py-4 md:py-8">
-
             <Tabs defaultValue="profile" className="w-full animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                     <TabsTrigger value="profile" className="gap-2">
@@ -51,7 +76,7 @@ export default async function ProfilePage() {
                         </CardContent>
                         <CardFooter className="flex justify-between items-center border-t bg-muted/50 p-6">
                             <div className="text-sm text-muted-foreground">
-                                Signed in as <span className="font-medium text-foreground">{user.email}</span>
+                                Signed in as <span className="font-medium text-foreground">{user?.email}</span>
                             </div>
                         </CardFooter>
                     </Card>

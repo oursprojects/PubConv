@@ -28,19 +28,24 @@ export function MaintenanceListener() {
     // Check if user is admin to bypass maintenance
     useEffect(() => {
         const checkAdmin = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single();
-                if (data?.role === 'admin') {
-                    setIsAdmin(true);
-                    isAdminRef.current = true;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single();
+                    if (data?.role === 'admin') {
+                        setIsAdmin(true);
+                        isAdminRef.current = true;
+                    }
                 }
+            } catch (err) {
+                console.error("MaintenanceListener Admin Check error:", err);
+            } finally {
+                setCheckedAdmin(true);
             }
-            setCheckedAdmin(true);
         };
         checkAdmin();
     }, [supabase]);
@@ -75,15 +80,19 @@ export function MaintenanceListener() {
 
         // 1. Initial Check
         const checkMaintenance = async () => {
-            const { data } = await supabase
-                .from('app_config')
-                .select('value')
-                .eq('key', 'maintenance_mode')
-                .single();
+            try {
+                const { data } = await supabase
+                    .from('app_config')
+                    .select('value')
+                    .eq('key', 'maintenance_mode')
+                    .single();
 
-            const isMaintenance = data?.value === true || data?.value === 'true';
+                const isMaintenance = data?.value === true || data?.value === 'true';
 
-            handleRedirect(isMaintenance);
+                handleRedirect(isMaintenance);
+            } catch (err) {
+                console.error("MaintenanceListener check maintenance error:", err);
+            }
         };
         checkMaintenance();
 

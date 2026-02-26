@@ -1,3 +1,5 @@
+"use client";
+
 import { UserSearch } from "@/components/chat/UserSearch";
 import { Users } from "lucide-react";
 

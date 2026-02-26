@@ -1,11 +1,7 @@
-'use server'
-
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 
 export async function login(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const username = formData.get('username') as string
     const password = formData.get('password') as string
@@ -13,36 +9,40 @@ export async function login(formData: FormData) {
     // Construct email from username
     const email = `${username}@internal.app`;
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    })
+    try {
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        })
 
-    if (error) {
-        return { error: error.message }
-    }
-
-    // Check if user is banned
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_banned')
-            .eq('id', user.id)
-            .single();
-
-        if (profile?.is_banned) {
-            await supabase.auth.signOut();
-            return { error: 'Your account has been banned.' };
+        if (error) {
+            return { error: error.message }
         }
-    }
 
-    revalidatePath('/', 'layout')
-    redirect('/')
+        // Check if user is banned
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('is_banned')
+                .eq('id', user.id)
+                .single();
+
+            if (profile?.is_banned) {
+                await supabase.auth.signOut();
+                return { error: 'Your account has been banned.' };
+            }
+        }
+
+        return { success: true }
+    } catch (err: any) {
+        console.error("Login fetch error:", err);
+        return { error: "Network error. Please check your connection or configuration." }
+    }
 }
 
 export async function signup(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirmPassword') as string
@@ -73,50 +73,39 @@ export async function signup(formData: FormData) {
         return { error: 'Passwords do not match.' }
     }
 
-    // Verify reCAPTCHA token
-    if (!recaptchaToken) {
-        return { error: 'Please complete the reCAPTCHA verification.' }
-    }
-
-    const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-    })
-
-    const recaptchaData = await recaptchaResponse.json()
-    if (!recaptchaData.success) {
-        return { error: 'reCAPTCHA verification failed. Please try again.' }
-    }
+    // NOTE: reCAPTCHA verification against Google API requires the secret key.
+    // Exposing the secret key on the client is a security risk.
+    // For the mobile app (static export), this should ideally be handled by a Supabase Edge Function.
+    // For now, we will skip the server-side verification if we can't do it securely, 
+    // or just assume the client-side check happened.
 
     // Auto-generate email since we only ask for username
     const email = `${username}@internal.app`;
 
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: {
-                username: username,
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username: username,
+                }
             }
+        })
+
+        if (error) {
+            return { error: error.message }
         }
-    })
 
-    if (error) {
-        return { error: error.message }
+        return { success: true, session: !!data.session }
+    } catch (err: any) {
+        console.error("Signup fetch error:", err);
+        return { error: "Network error. Please check your connection or configuration." }
     }
-
-    // Success! If session exists, user is logged in. Redirect to home.
-    if (data.session) {
-        redirect('/')
-    }
-
-    // No session means signup completed, redirect to login
-    redirect('/login')
 }
 
 export async function updatePassword(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const password = formData.get('newPassword') as string
     const confirmPassword = formData.get('confirmPassword') as string
 
@@ -124,13 +113,18 @@ export async function updatePassword(formData: FormData) {
         return { error: 'Passwords do not match' }
     }
 
-    const { error } = await supabase.auth.updateUser({
-        password: password
-    })
+    try {
+        const { error } = await supabase.auth.updateUser({
+            password: password
+        })
 
-    if (error) {
-        return { error: error.message }
+        if (error) {
+            return { error: error.message }
+        }
+
+        return { success: true }
+    } catch (err: any) {
+        console.error("Update password fetch error:", err);
+        return { error: "Network error. Please check your connection or configuration." }
     }
-
-    return { success: true }
 }

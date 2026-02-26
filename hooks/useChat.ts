@@ -366,6 +366,12 @@ export function useChat() {
         });
         scrollToBottom();
 
+        // Optimistic UI Haptics
+        try {
+            const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+            await Haptics.impact({ style: ImpactStyle.Light });
+        } catch (e) { /* Fallback */ }
+
         const { data, error } = await supabase
             .from('messages')
             .insert({
