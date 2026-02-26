@@ -7,7 +7,6 @@ import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import PageTransition from "@/components/page-transition";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { BottomNav } from "@/components/layout/BottomNav";
 
 export default function MainLayout({
     children,
@@ -80,7 +79,6 @@ export default function MainLayout({
                 <div className="flex-1 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-                <BottomNav />
             </div>
         );
     }
@@ -93,14 +91,13 @@ export default function MainLayout({
         <RealtimeProvider>
             <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
                 <TopHeader user={user} role={role} avatarUrl={avatarUrl} />
-                <div className="flex-1 w-full min-h-0 flex flex-col pb-16 md:pb-0">
+                <div className="flex-1 w-full min-h-0 flex flex-col">
                     <main className="flex-1 w-full min-h-0 overflow-hidden">
                         <PageTransition>
                             {children}
                         </PageTransition>
                     </main>
                 </div>
-                <BottomNav />
             </div>
         </RealtimeProvider>
     );
