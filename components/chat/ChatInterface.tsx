@@ -275,22 +275,28 @@ export function ChatInterface() {
                             <p>No messages yet. Say hello!</p>
                         </div>
                     )}
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={cn(
-                                "flex w-full group gap-2",
-                                msg.user_id === userId ? "justify-end" : "justify-start",
-                                msg.isPending && "opacity-70"
-                            )}
-                        >
+                    {messages.map((msg) => {
+                        const reactionEntries = Object.entries(msg.reactions ?? {}).filter(([, users]) => users && users.length > 0);
+                        const hasVisibleReactions = reactionEntries.length > 0;
+                        const totalReactions = reactionEntries.reduce((sum, [, users]) => sum + users.length, 0);
+                        const hasUserReacted = reactionEntries.some(([, users]) => userId && users.includes(userId));
+
+                        return (
+                            <div
+                                key={msg.id}
+                                className={cn(
+                                    "flex w-full items-start group gap-2",
+                                    msg.user_id === userId ? "justify-end" : "justify-start",
+                                    msg.isPending && "opacity-70"
+                                )}
+                            >
                             {msg.user_id !== userId && (
                                 <InitialsAvatar
                                     username={msg.profiles?.username || "?"}
                                     avatarUrl={msg.profiles?.avatar_url}
                                     size="md"
                                     isAdmin={msg.profiles?.role === 'admin'}
-                                    className="mt-0.5"
+                                    className="mt-4"
                                 />
                             )}
 
@@ -323,7 +329,7 @@ export function ChatInterface() {
                                 )}
 
                                 {/* Message Bubble with reactions - Messenger style */}
-                                <div className="relative group/msg mb-1">
+                                <div className={cn("relative group/msg", hasVisibleReactions ? "mb-6" : "mb-1")}>
                                     {/* Reply & React buttons - appear beside the bubble on hover */}
                                     <div className={cn(
                                         "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5 z-20",
@@ -412,12 +418,7 @@ export function ChatInterface() {
                                         </p>
 
                                         {/* Reactions Display - stacked emojis like Messenger */}
-                                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
-                                            const totalCount = Object.values(msg.reactions).reduce((sum, users) => sum + (users?.length || 0), 0);
-                                            const hasUserReacted = Object.values(msg.reactions).some(users => userId && users?.includes(userId));
-                                            const reactionEntries = Object.entries(msg.reactions).filter(([, users]) => users && users.length > 0);
-
-                                            return (
+                                        {hasVisibleReactions && (
                                                 <div className={cn(
                                                     "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-[10px] border shadow-sm z-10",
                                                     hasUserReacted
@@ -441,12 +442,11 @@ export function ChatInterface() {
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    {totalCount >= 2 && (
-                                                        <span className="text-[9px] text-muted-foreground font-medium ml-0.5">{totalCount}</span>
+                                                    {totalReactions >= 2 && (
+                                                        <span className="text-[9px] text-muted-foreground font-medium ml-0.5">{totalReactions}</span>
                                                     )}
                                                 </div>
-                                            );
-                                        })()}
+                                        )}
                                     </div>
                                 </div>
 
@@ -462,7 +462,8 @@ export function ChatInterface() {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                     <div ref={messagesEndRef} />
                 </div>
 
