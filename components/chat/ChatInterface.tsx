@@ -299,6 +299,13 @@ export function ChatInterface() {
                                 msg.user_id === userId ? "items-end" : "items-start",
                                 "max-w-[80%]"
                             )}>
+                                <div className={cn(
+                                    "mb-0.5 text-[11px] font-medium text-muted-foreground",
+                                    msg.user_id === userId ? "text-right" : "text-left"
+                                )}>
+                                    {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
+                                </div>
+
                                 {/* Reply Context - Shows what message THIS message is replying to */}
                                 {msg.reply_message && (
                                     <div className={cn(
@@ -445,10 +452,6 @@ export function ChatInterface() {
 
                                 {/* Date */}
                                 <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
-                                    <span className="font-medium">
-                                        {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
-                                    </span>
-                                    <span>&middot;</span>
                                     {msg.isPending ? (
                                         <span className="italic">Sending...</span>
                                     ) : (

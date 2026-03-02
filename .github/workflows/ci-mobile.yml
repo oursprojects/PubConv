@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -28,8 +30,13 @@ jobs:
 
       - name: Verify mobile contains main
         run: |
-          git fetch origin main --depth=1
-          git merge-base --is-ancestor origin/main HEAD
+          git fetch origin main
+          git merge-base --is-ancestor origin/main HEAD || {
+            echo "mobile branch must include latest main before push";
+            echo "main tip: $(git rev-parse --short origin/main)";
+            echo "mobile tip: $(git rev-parse --short HEAD)";
+            exit 1;
+          }
 
       - name: Typecheck
         run: |

@@ -43,6 +43,7 @@ export function useChat() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
     const profileCache = useRef<ProfileCache>(new Map())
+    const previousMessageCountRef = useRef(0)
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -320,10 +321,13 @@ export function useChat() {
         };
     }, [supabase, router, fetchMessages, scrollToBottom, handleUserRemoved]);
 
-    // Auto-scroll on new messages
+    // Auto-scroll only when a new message is appended, not on reaction updates.
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
+        if (messages.length > previousMessageCountRef.current) {
+            scrollToBottom();
+        }
+        previousMessageCountRef.current = messages.length;
+    }, [messages.length, scrollToBottom]);
 
     // Send message with optimistic UI + broadcast
     const sendMessage = async (content: string, replyTo?: Message) => {
