@@ -268,18 +268,8 @@ export function ChatInterface() {
                 {/* Messages Area */}
                 <div
                     ref={messagesParent}
-                    className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth bg-background"
+                    className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth bg-background"
                 >
-                    {/* System Notice - Always visible at top */}
-                    <div className="flex justify-center mb-4">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
-                            <Info className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <p className="text-xs text-muted-foreground">
-                                Be kind and respectful to everyone. Enjoy the conversation!
-                            </p>
-                        </div>
-                    </div>
-
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
                             <p>No messages yet. Say hello!</p>
@@ -300,6 +290,7 @@ export function ChatInterface() {
                                     avatarUrl={msg.profiles?.avatar_url}
                                     size="md"
                                     isAdmin={msg.profiles?.role === 'admin'}
+                                    className="mt-0.5"
                                 />
                             )}
 
@@ -308,33 +299,40 @@ export function ChatInterface() {
                                 msg.user_id === userId ? "items-end" : "items-start",
                                 "max-w-[80%]"
                             )}>
-                                {/* Sender name at top of each message */}
-                                <div className="mb-0.5 text-[11px] font-medium text-muted-foreground">
-                                    {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
-                                </div>
                                 {/* Reply Context - Shows what message THIS message is replying to */}
                                 {msg.reply_message && (
                                     <div className={cn(
-                                        "mb-1 text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-lg border-l-2 border-primary/50 max-w-full",
+                                        "mb-1 text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-[10px] border-l-2 border-primary/50 max-w-full",
                                         msg.user_id === userId ? "ml-auto" : "mr-auto"
                                     )}>
                                         <Reply className="h-3 w-3 shrink-0 opacity-60" />
                                         <div className="flex items-center gap-1 min-w-0">
                                             <span className="shrink-0 opacity-70">Replying to</span>
                                             <span className="font-semibold shrink-0">@{msg.reply_message.profiles.username}</span>
-                                            <span className="opacity-50 shrink-0">•</span>
+                                            <span className="opacity-50 shrink-0">&middot;</span>
                                             <span className="truncate opacity-70 italic">&quot;{msg.reply_message.content}&quot;</span>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Message Bubble with reactions - Messenger style */}
-                                <div className="relative group/msg mb-2">
+                                <div className="relative group/msg mb-1">
                                     {/* Reply & React buttons - appear beside the bubble on hover */}
                                     <div className={cn(
                                         "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5 z-20",
                                         msg.user_id === userId ? "right-full mr-1 flex-row-reverse" : "left-full ml-1"
                                     )}>
+                                        {role === 'admin' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 rounded-lg bg-background/80 border shadow-sm hover:bg-destructive/10 hover:text-destructive"
+                                                onClick={() => setMessageToDelete(msg.id)}
+                                                title="Delete message"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -357,7 +355,7 @@ export function ChatInterface() {
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-1" align={msg.user_id === userId ? "end" : "start"}>
                                                 <div className="flex gap-1">
-                                                    {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
+                                                    {['\u{1F44D}', '\u2764\uFE0F', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F525}'].map(emoji => (
                                                         <button
                                                             key={emoji}
                                                             className="p-2 hover:bg-accent rounded text-lg transition-transform hover:scale-110"
@@ -373,10 +371,10 @@ export function ChatInterface() {
 
                                     {/* Message Bubble */}
                                     <div className={cn(
-                                        "px-3 py-1.5 text-sm rounded-[1.75rem] relative border-2 shadow-sm",
+                                        "px-3 py-1.5 text-sm rounded-[10px] relative border shadow-sm",
                                         msg.user_id === userId
-                                            ? "bg-primary text-primary-foreground border-primary/30"
-                                            : "bg-muted text-foreground border-border"
+                                            ? "bg-foreground text-background border-foreground/20"
+                                            : "bg-muted/80 text-foreground border-border/80"
                                     )}>
                                         <p className={cn(
                                             "whitespace-pre-wrap break-all",
@@ -414,7 +412,7 @@ export function ChatInterface() {
 
                                             return (
                                                 <div className={cn(
-                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-lg border shadow-sm z-10",
+                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-[10px] border shadow-sm z-10",
                                                     hasUserReacted
                                                         ? "bg-background border-primary/40"
                                                         : "bg-background border-border",
@@ -446,7 +444,11 @@ export function ChatInterface() {
                                 </div>
 
                                 {/* Date */}
-                                <div className="flex items-center gap-1 mt-0 text-[11px] text-muted-foreground">
+                                <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
+                                    <span className="font-medium">
+                                        {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
+                                    </span>
+                                    <span>&middot;</span>
                                     {msg.isPending ? (
                                         <span className="italic">Sending...</span>
                                     ) : (
@@ -456,21 +458,6 @@ export function ChatInterface() {
                                     )}
                                 </div>
                             </div>
-
-                            {/* Admin Actions - always on the right side */}
-                            {role === 'admin' && (
-                                <div className="flex flex-col justify-start self-start pt-1 px-1 shrink-0 order-last">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-transparent"
-                                        onClick={() => setMessageToDelete(msg.id)}
-                                        title="Delete message"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
