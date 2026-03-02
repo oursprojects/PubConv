@@ -462,6 +462,16 @@ export function ChatInterface() {
                                     )}
                                 </div>
                             </div>
+
+                            {msg.user_id === userId && (
+                                <InitialsAvatar
+                                    username={msg.profiles?.username || username || "You"}
+                                    avatarUrl={msg.profiles?.avatar_url}
+                                    size="md"
+                                    isAdmin={msg.profiles?.role === 'admin'}
+                                    className="mt-0.5"
+                                />
+                            )}
                         </div>
                         );
                     })}
