@@ -296,7 +296,7 @@ export function ChatInterface() {
                                     avatarUrl={msg.profiles?.avatar_url}
                                     size="md"
                                     isAdmin={msg.profiles?.role === 'admin'}
-                                    className="mt-4"
+                                    className="mt-0.5"
                                 />
                             )}
 
@@ -329,7 +329,7 @@ export function ChatInterface() {
                                 )}
 
                                 {/* Message Bubble with reactions - Messenger style */}
-                                <div className={cn("relative group/msg", hasVisibleReactions ? "mb-6" : "mb-1")}>
+                                <div className="relative group/msg mb-1">
                                     {/* Reply & React buttons - appear beside the bubble on hover */}
                                     <div className={cn(
                                         "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5 z-20",
@@ -417,37 +417,38 @@ export function ChatInterface() {
                                             })}
                                         </p>
 
-                                        {/* Reactions Display - stacked emojis like Messenger */}
-                                        {hasVisibleReactions && (
-                                                <div className={cn(
-                                                    "absolute -bottom-5 flex items-center px-1 py-0.5 rounded-[10px] border shadow-sm z-10",
-                                                    hasUserReacted
-                                                        ? "bg-background border-primary/40"
-                                                        : "bg-background border-border",
-                                                    msg.user_id === userId ? "left-0" : "right-0"
-                                                )}>
-                                                    <div className="flex items-center">
-                                                        {reactionEntries.map(([emoji, users], index) => (
-                                                            <button
-                                                                key={emoji}
-                                                                onClick={() => toggleReaction(msg.id, emoji)}
-                                                                className={cn(
-                                                                    "text-[11px] hover:scale-110 transition-transform",
-                                                                    index > 0 && "-ml-1"
-                                                                )}
-                                                                style={{ zIndex: reactionEntries.length - index }}
-                                                                title={`${users.length} reaction${users.length > 1 ? 's' : ''}`}
-                                                            >
-                                                                {emoji}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    {totalReactions >= 2 && (
-                                                        <span className="text-[9px] text-muted-foreground font-medium ml-0.5">{totalReactions}</span>
-                                                    )}
-                                                </div>
-                                        )}
                                     </div>
+
+                                    {/* Reactions Display - in flow so it never overlays date */}
+                                    {hasVisibleReactions && (
+                                        <div className={cn(
+                                            "mt-1 flex items-center px-1 py-0.5 rounded-[10px] border shadow-sm z-10",
+                                            hasUserReacted
+                                                ? "bg-background border-primary/40"
+                                                : "bg-background border-border",
+                                            msg.user_id === userId ? "self-end" : "self-start"
+                                        )}>
+                                            <div className="flex items-center">
+                                                {reactionEntries.map(([emoji, users], index) => (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={() => toggleReaction(msg.id, emoji)}
+                                                        className={cn(
+                                                            "text-[11px] hover:scale-110 transition-transform",
+                                                            index > 0 && "-ml-1"
+                                                        )}
+                                                        style={{ zIndex: reactionEntries.length - index }}
+                                                        title={`${users.length} reaction${users.length > 1 ? 's' : ''}`}
+                                                    >
+                                                        {emoji}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {totalReactions >= 2 && (
+                                                <span className="text-[9px] text-muted-foreground font-medium ml-0.5">{totalReactions}</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Date */}
