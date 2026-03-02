@@ -32,9 +32,14 @@ export function InitialsAvatar({
     isAdmin = false
 }: InitialsAvatarProps & { avatarUrl?: string | null }) {
     const initials = getInitials(username);
+    const [imageError, setImageError] = React.useState(false);
 
-    // Check for valid, non-empty avatar URL
-    const isValidAvatar = avatarUrl && avatarUrl.length > 0;
+    React.useEffect(() => {
+        setImageError(false);
+    }, [avatarUrl]);
+
+    // Render image only when URL exists and has not failed to load.
+    const shouldShowAvatarImage = Boolean(avatarUrl && avatarUrl.trim().length > 0 && !imageError);
 
     return (
         <div className={cn("relative inline-flex shrink-0", sizeClasses[size], className)}>
@@ -48,11 +53,12 @@ export function InitialsAvatar({
                     isAdmin && "ring-amber-400 border-amber-100"
                 )}
             >
-                {isValidAvatar ? (
+                {shouldShowAvatarImage ? (
                     <img
                         src={avatarUrl!}
                         alt={username}
                         className="h-full w-full object-cover"
+                        onError={() => setImageError(true)}
                     />
                 ) : (
                     initials
