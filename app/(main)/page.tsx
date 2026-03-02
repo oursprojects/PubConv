@@ -87,7 +87,7 @@ export default function DashboardPage() {
             {getGreeting()}{displayName ? `, ${displayName}` : ""}!
           </h1>
           <p className="text-base text-muted-foreground max-w-sm mx-auto">
-            Welcome to PubConv! Everything you need is right at your fingertips.
+            Welcome.
           </p>
         </div>
 
