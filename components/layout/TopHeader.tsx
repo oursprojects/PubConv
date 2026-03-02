@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette, CalendarDays } from "lucide-react";
+import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette, CalendarDays, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { createClient } from "@/lib/supabase/client";
@@ -12,13 +12,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallPWA } from "@/components/pwa-install-button";
 import { toast } from "sonner";
 import { useNetwork } from "@/components/providers/NetworkProvider";
-import { WifiOff } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -45,23 +42,22 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const { isOffline } = useNetwork();
 
     const handleLogout = async () => {
-        // Show confirmation dialog
-        const { swalConfirm } = await import('@/lib/swal');
+        if (isOffline) {
+            toast.error("You are offline. Logout is disabled.");
+            return;
+        }
+
+        const { swalConfirm } = await import("@/lib/swal");
         const result = await swalConfirm(
-            'Sign Out?',
-            'Are you sure you want to sign out?',
+            "Sign Out?",
+            "Are you sure you want to sign out?",
             {
-                confirmButtonText: 'Yes, Sign Out',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: "Yes, Sign Out",
+                cancelButtonText: "Cancel",
             }
         );
 
         if (!result.isConfirmed) return;
-
-        if (isOffline) {
-            toast.error("You cannot sign out while offline.");
-            return;
-        }
 
         setIsLoggingOut(true);
         toast.loading("Signing out...");
@@ -72,13 +68,8 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
         router.push("/login");
     };
 
-    const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
-
-    // Prefer the database URL (passed as prop), then metadata
     const rawAvatarUrl = profileAvatarUrl || user?.user_metadata?.avatar_url;
-
-    // Filter out dicebear legacy URLs
-    const avatarUrl = (rawAvatarUrl && !rawAvatarUrl.includes('dicebear')) ? rawAvatarUrl : null;
+    const avatarUrl = rawAvatarUrl && !rawAvatarUrl.includes("dicebear") ? rawAvatarUrl : null;
 
     return (
         <header className="w-full border-b bg-background pt-[env(safe-area-inset-top)] shrink-0 z-40 relative">
@@ -94,7 +85,6 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                     )}
                 </Link>
 
-                {/* Current Date */}
                 <div className="hidden md:flex items-center ml-4 px-3 py-1 bg-muted/50 rounded-lg">
                     <span className="text-xs text-muted-foreground font-medium">
                         {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -104,7 +94,6 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                 <div className="flex flex-1 items-center justify-end space-x-2">
                     <InstallPWA className="hidden md:flex" />
 
-                    {/* Theme Selector Popover */}
                     <Popover>
                         <PopoverTrigger asChild>
                             <AnimatedButton
@@ -126,10 +115,10 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
 
                     {user && (
                         <InitialsAvatar
-                            username={user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'U'}
+                            username={user?.user_metadata?.display_name || user?.email?.split("@")[0] || "U"}
                             avatarUrl={avatarUrl}
                             size="md"
-                            isAdmin={role === 'admin'}
+                            isAdmin={role === "admin"}
                             className="ml-2"
                         />
                     )}
@@ -155,13 +144,12 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                             alignOffset={-10}
                             className="w-14 min-w-0 flex flex-col items-center bg-background/95 backdrop-blur-md border rounded-[2rem] p-2 gap-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-200"
                         >
-                            {/* Navigation Items - Only show when NOT on home page */}
                             {pathname !== "/" && navItems.map((item, index) => (
                                 <DropdownMenuItem
                                     key={item.href}
                                     asChild
                                     className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
-                                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+                                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
                                 >
                                     <Link
                                         href={item.href}
@@ -179,13 +167,11 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 </DropdownMenuItem>
                             ))}
 
-
-                            {/* Admin Dashboard */}
-                            {role === 'admin' && (
+                            {role === "admin" && (
                                 <DropdownMenuItem
                                     asChild
                                     className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
-                                    style={{ animationDelay: `${pathname === "/" ? 0 : navItems.length * 50}ms`, animationFillMode: 'both' }}
+                                    style={{ animationDelay: `${pathname === "/" ? 0 : navItems.length * 50}ms`, animationFillMode: "both" }}
                                 >
                                     <Link
                                         href="/admin"
@@ -203,12 +189,11 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 </DropdownMenuItem>
                             )}
 
-                            {/* About Item - Only show when NOT on home page */}
                             {pathname !== "/" && (
                                 <DropdownMenuItem
                                     asChild
                                     className="p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2"
-                                    style={{ animationDelay: `${(navItems.length + (role === 'admin' ? 1 : 0)) * 50}ms`, animationFillMode: 'both' }}
+                                    style={{ animationDelay: `${(navItems.length + (role === "admin" ? 1 : 0)) * 50}ms`, animationFillMode: "both" }}
                                 >
                                     <Link
                                         href="/about"
@@ -226,28 +211,31 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 </DropdownMenuItem>
                             )}
 
-                            {/* Logout Item - Always show */}
                             <DropdownMenuItem
                                 className={cn(
                                     "p-0 focus:bg-transparent justify-center animate-in fade-in-0 slide-in-from-right-2",
                                     pathname !== "/" && "mt-1"
                                 )}
-                                style={{ animationDelay: `${pathname === "/" ? (role === 'admin' ? 50 : 0) : (navItems.length + (role === 'admin' ? 2 : 1)) * 50}ms`, animationFillMode: 'both' }}
+                                style={{ animationDelay: `${pathname === "/" ? (role === "admin" ? 50 : 0) : (navItems.length + (role === "admin" ? 2 : 1)) * 50}ms`, animationFillMode: "both" }}
                                 onSelect={(e) => {
                                     e.preventDefault();
+                                    if (isOffline || isLoggingOut) return;
                                     handleLogout();
                                 }}
-                                disabled={isLoggingOut}
+                                disabled={isLoggingOut || isOffline}
                             >
-                                <div className={cn(
-                                    "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground transition-all duration-200 cursor-pointer",
-                                    (isLoggingOut || isOffline) && "opacity-50 cursor-not-allowed",
-                                    !isOffline && "hover:bg-muted hover:text-foreground hover:scale-105"
-                                )}
+                                <div
+                                    className={cn(
+                                        "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground transition-all duration-200 cursor-pointer",
+                                        (isLoggingOut || isOffline) && "opacity-50 cursor-not-allowed",
+                                        !isOffline && "hover:bg-muted hover:text-foreground hover:scale-105"
+                                    )}
                                     title={isOffline ? "Logout disabled (Offline)" : "Log out"}
                                 >
                                     {isLoggingOut ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : isOffline ? (
+                                        <WifiOff className="h-4 w-4" />
                                     ) : (
                                         <LogOut className="h-4 w-4" />
                                     )}
@@ -260,4 +248,3 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
         </header>
     );
 }
-
