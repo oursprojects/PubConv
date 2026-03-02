@@ -122,9 +122,9 @@ export default function DashboardPage() {
           <p className="text-xs text-muted-foreground">
             Developed by <span className="font-semibold text-primary">Group 1</span>
           </p>
-          <a href="/terms" className="text-xs text-muted-foreground hover:text-primary mt-1 inline-block">
+          <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary mt-1 inline-block">
             Terms & Conditions
-          </a>
+          </Link>
         </div>
       </div>
     </div>

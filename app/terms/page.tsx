@@ -89,7 +89,7 @@ export default function TermsPage() {
                     <div className="text-center text-xs text-muted-foreground pt-3 animate-in fade-in-0 duration-500" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
                         <p className="mb-2">By using PubConv, you agree to these terms.</p>
                         <Link href="/" className="text-primary hover:underline">
-                            ← Back to Home
+                            Back to Home
                         </Link>
                     </div>
                 </div>

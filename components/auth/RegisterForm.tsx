@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { signup } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -216,9 +217,9 @@ export function RegisterForm() {
                 />
                 <label htmlFor="terms" className="text-[11px] text-muted-foreground leading-tight">
                     I am 18+ and agree to the{" "}
-                    <a href="/terms" target="_blank" className="text-primary hover:underline">
+                    <Link href="/terms" className="text-primary hover:underline">
                         Terms
-                    </a>
+                    </Link>
                 </label>
             </div>
 
