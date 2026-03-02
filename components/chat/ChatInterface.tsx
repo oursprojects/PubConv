@@ -268,7 +268,7 @@ export function ChatInterface() {
                 {/* Messages Area */}
                 <div
                     ref={messagesParent}
-                    className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth bg-background"
+                    className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth bg-background"
                 >
                     {/* System Notice - Always visible at top */}
                     <div className="flex justify-center mb-4">
@@ -308,6 +308,10 @@ export function ChatInterface() {
                                 msg.user_id === userId ? "items-end" : "items-start",
                                 "max-w-[80%]"
                             )}>
+                                {/* Sender name at top of each message */}
+                                <div className="mb-0.5 text-[11px] font-medium text-muted-foreground">
+                                    {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
+                                </div>
                                 {/* Reply Context - Shows what message THIS message is replying to */}
                                 {msg.reply_message && (
                                     <div className={cn(
@@ -325,7 +329,7 @@ export function ChatInterface() {
                                 )}
 
                                 {/* Message Bubble with reactions - Messenger style */}
-                                <div className="relative group/msg mb-4">
+                                <div className="relative group/msg mb-2">
                                     {/* Reply & React buttons - appear beside the bubble on hover */}
                                     <div className={cn(
                                         "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5 z-20",
@@ -369,7 +373,7 @@ export function ChatInterface() {
 
                                     {/* Message Bubble */}
                                     <div className={cn(
-                                        "px-3 py-1.5 text-sm rounded-2xl relative border-2 shadow-sm",
+                                        "px-3 py-1.5 text-sm rounded-[1.75rem] relative border-2 shadow-sm",
                                         msg.user_id === userId
                                             ? "bg-primary text-primary-foreground border-primary/30"
                                             : "bg-muted text-foreground border-border"
@@ -441,12 +445,8 @@ export function ChatInterface() {
                                     </div>
                                 </div>
 
-                                {/* Username • Date ... (same) */}
-                                <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
-                                    <span className="font-medium">
-                                        {msg.user_id === userId ? "You" : msg.profiles?.username || "Unknown"}
-                                    </span>
-                                    <span>•</span>
+                                {/* Date */}
+                                <div className="flex items-center gap-1 mt-0 text-[11px] text-muted-foreground">
                                     {msg.isPending ? (
                                         <span className="italic">Sending...</span>
                                     ) : (

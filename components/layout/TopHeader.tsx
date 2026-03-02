@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette, CalendarDays } from "lucide-react";
+import { Home, MessageSquare, User, Search, MessageCircle, LogOut, Loader2, Info, X, ShieldCheck, LayoutGrid, Palette, CalendarDays, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { createClient } from "@/lib/supabase/client";
@@ -15,8 +15,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -40,8 +38,29 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = React.useState(false);
     const [isOpen, setIsOpen] = React.useState(false);
+    const [isOnline, setIsOnline] = React.useState(true);
+
+    React.useEffect(() => {
+        setIsOnline(navigator.onLine);
+
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("offline", handleOffline);
+
+        return () => {
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("offline", handleOffline);
+        };
+    }, []);
 
     const handleLogout = async () => {
+        if (!isOnline) {
+            toast.error("You are offline. Logout is disabled.");
+            return;
+        }
+
         // Show confirmation dialog
         const { swalConfirm } = await import('@/lib/swal');
         const result = await swalConfirm(
@@ -63,8 +82,6 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
         toast.success("Signed out successfully!");
         router.push("/login");
     };
-
-    const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
 
     // Prefer the database URL (passed as prop), then metadata
     const rawAvatarUrl = profileAvatarUrl || user?.user_metadata?.avatar_url;
@@ -220,18 +237,21 @@ export function TopHeader({ user, role, avatarUrl: profileAvatarUrl }: { user?: 
                                 style={{ animationDelay: `${pathname === "/" ? (role === 'admin' ? 50 : 0) : (navItems.length + (role === 'admin' ? 2 : 1)) * 50}ms`, animationFillMode: 'both' }}
                                 onSelect={(e) => {
                                     e.preventDefault();
+                                    if (!isOnline || isLoggingOut) return;
                                     handleLogout();
                                 }}
-                                disabled={isLoggingOut}
+                                disabled={isLoggingOut || !isOnline}
                             >
                                 <div className={cn(
                                     "flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 transition-all duration-200 cursor-pointer",
-                                    isLoggingOut && "opacity-50 cursor-not-allowed"
+                                    (isLoggingOut || !isOnline) && "opacity-50 cursor-not-allowed"
                                 )}
-                                    title="Log out"
+                                    title={!isOnline ? "Offline: logout disabled" : "Log out"}
                                 >
                                     {isLoggingOut ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : !isOnline ? (
+                                        <WifiOff className="h-4 w-4" />
                                     ) : (
                                         <LogOut className="h-4 w-4" />
                                     )}

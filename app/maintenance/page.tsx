@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Construction } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MaintenancePage() {
     const router = useRouter();
@@ -57,6 +58,7 @@ export default function MaintenancePage() {
 
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isOnline, setIsOnline] = useState(true);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -67,13 +69,36 @@ export default function MaintenancePage() {
         checkAuth();
     }, [supabase]);
 
+    useEffect(() => {
+        setIsOnline(navigator.onLine);
+
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("offline", handleOffline);
+
+        return () => {
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("offline", handleOffline);
+        };
+    }, []);
+
     const handleLogout = async () => {
+        if (!isOnline) {
+            toast.error("You are offline. Logout is disabled.");
+            return;
+        }
         await supabase.auth.signOut();
         setIsAuthenticated(false);
         router.push('/login');
     };
 
     const handleLogin = () => {
+        if (!isOnline) {
+            toast.error("You are offline. Login is unavailable.");
+            return;
+        }
         router.push('/login');
     };
 
@@ -106,16 +131,18 @@ export default function MaintenancePage() {
                             {isAuthenticated ? (
                                 <button
                                     onClick={handleLogout}
-                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                                    disabled={!isOnline}
+                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Log out
+                                    {isOnline ? "Log out" : "Offline: logout disabled"}
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleLogin}
-                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                                    disabled={!isOnline}
+                                    className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Log in
+                                    {isOnline ? "Log in" : "Offline"}
                                 </button>
                             )}
                         </div>

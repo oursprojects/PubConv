@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 export type Message = {
     id: string
@@ -328,6 +329,10 @@ export function useChat() {
     const sendMessage = async (content: string, replyTo?: Message) => {
         if (!content.trim()) return;
         if (!userId) {
+            if (!navigator.onLine) {
+                toast.error("You're offline. Stay on this page and reconnect to continue.");
+                return;
+            }
             router.push('/login');
             return;
         }
