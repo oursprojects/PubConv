@@ -30,7 +30,19 @@ export async function toggleBanUser(userId: string, isBanned: boolean) {
     const supabase = createClient()
     const { error } = await supabase.rpc('admin_toggle_ban_user', { target_user_id: userId, ban_status: isBanned })
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error("[BanUser] Error calling RPC:", error);
+        return { success: false, error: error.message }
+    }
+    
+    // Verify it actually saved
+    const { data: checkData } = await supabase.from('profiles').select('is_banned').eq('id', userId).single();
+    console.log(`[BanUser] Verified DB value after RPC: `, checkData);
+    
+    if (checkData?.is_banned !== isBanned) {
+        console.error("[BanUser] DB did NOT update properly. Is RPC executing successfully without committing?!");
+    }
+
     return { success: true }
 }
 
@@ -101,14 +113,25 @@ export async function updateSystemConfig(key: string, value: boolean | number | 
     const storeValue = key === 'message_rate_limit' ? Number(value) : value;
 
     // Use RPC to bypass RLS securely
-    const { data, error } = await supabase.rpc('admin_update_app_config', {
+    const rpcPayload = {
         config_key: key,
         config_value: JSON.stringify(storeValue)
-    })
+    };
+    
+    console.log(`[AdminConfig] Calling RPC with:`, rpcPayload);
+    const { data, error } = await supabase.rpc('admin_update_app_config', rpcPayload);
 
     if (error) {
-        console.error(`[AdminConfig] Error:`, error.message);
+        console.error(`[AdminConfig] Error executing RPC:`, error.message);
         return { success: false, error: error.message }
+    }
+
+    // Explicitly verify the write action
+    const { data: dbVerify } = await supabase.from('app_config').select('*').eq('key', key).single();
+    console.log(`[AdminConfig] Verification Check DB value for ${key}:`, dbVerify);
+    
+    if (dbVerify && dbVerify.value !== JSON.stringify(storeValue) && dbVerify.value !== storeValue.toString()) {
+        console.error(`[AdminConfig] Write failed to persist! Expected ${JSON.stringify(storeValue)} but got ${dbVerify.value}. Check Supabase RPC logic.`);
     }
 
     return { success: true, data }
