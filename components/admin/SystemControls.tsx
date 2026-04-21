@@ -23,9 +23,10 @@ interface SystemControlsProps {
     initialMaintenanceMode: boolean;
     initialDisableSignup: boolean;
     initialRateLimit: number;
+    onConfigChange?: (key: string, value: boolean | number) => void;
 }
 
-export function SystemControls({ initialMaintenanceMode, initialDisableSignup, initialRateLimit }: SystemControlsProps) {
+export function SystemControls({ initialMaintenanceMode, initialDisableSignup, initialRateLimit, onConfigChange }: SystemControlsProps) {
     const [maintenanceMode, setMaintenanceMode] = useState(initialMaintenanceMode);
     const [disableSignup, setDisableSignup] = useState(initialDisableSignup);
     const [rateLimit, setRateLimit] = useState(initialRateLimit);
@@ -54,6 +55,10 @@ export function SystemControls({ initialMaintenanceMode, initialDisableSignup, i
         } else if (type === 'message_rate_limit') {
             setRateLimit(newValue as number);
             await broadcastRateLimit(newValue as number);
+        }
+
+        if (onConfigChange) {
+            onConfigChange(type, newValue);
         }
 
         setLoading(null);

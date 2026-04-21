@@ -111,6 +111,16 @@ export default function AdminPage() {
                         initialMaintenanceMode={Boolean(maintenanceMode)}
                         initialDisableSignup={Boolean(disableSignup)}
                         initialRateLimit={Number(rateLimit)}
+                        onConfigChange={(key, value) => {
+                            setConfigs(prev => {
+                                const exists = prev.find(c => c.key === key);
+                                if (exists) {
+                                    return prev.map(c => c.key === key ? { ...c, value: String(value) } : c);
+                                } else {
+                                    return [...prev, { key, value: String(value) }];
+                                }
+                            });
+                        }}
                     />
                 </TabsContent>
 
@@ -122,7 +132,15 @@ export default function AdminPage() {
                         </CardHeader>
                         <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
                             <div className="h-full w-full">
-                                <UserManagement initialUsers={users} />
+                                <UserManagement 
+                                    initialUsers={users}
+                                    onUserChange={(userId, isBanned) => {
+                                        setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: isBanned } : u));
+                                    }}
+                                    onUserDelete={(userId) => {
+                                        setUsers(prev => prev.filter(u => u.id !== userId));
+                                    }}
+                                />
                             </div>
                         </CardContent>
                     </Card>

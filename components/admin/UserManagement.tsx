@@ -21,7 +21,13 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
+interface UserManagementProps {
+    initialUsers: any[];
+    onUserChange?: (userId: string, isBanned: boolean) => void;
+    onUserDelete?: (userId: string) => void;
+}
+
+export function UserManagement({ initialUsers, onUserChange, onUserDelete }: UserManagementProps) {
     const [users, setUsers] = useState(initialUsers);
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(false);
@@ -47,7 +53,9 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
             const result = await toggleBanUser(userId, !currentStatus);
             if (result.success) {
                 // Optimistic update
-                setUsers(users.map(u => u.id === userId ? { ...u, is_banned: !currentStatus } : u));
+                const newStatus = !currentStatus;
+                setUsers(users.map(u => u.id === userId ? { ...u, is_banned: newStatus } : u));
+                if (onUserChange) onUserChange(userId, newStatus);
 
                 // Broadcast ban if banning (not unbanning)
                 if (!currentStatus) {
@@ -79,6 +87,7 @@ export function UserManagement({ initialUsers }: { initialUsers: any[] }) {
             const result = await deleteUser(userId);
             if (result.success) {
                 setUsers(users.filter(u => u.id !== userId));
+                if (onUserDelete) onUserDelete(userId);
             } else {
                 console.error(result.error);
             }
