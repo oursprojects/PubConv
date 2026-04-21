@@ -1,7 +1,10 @@
-import { createClient } from '@/lib/supabase/client'
+"use server"
+
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 async function checkAdmin() {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
 
@@ -17,8 +20,8 @@ async function checkAdmin() {
 export async function deleteMessage(messageId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    const supabase = createClient()
-    const { error } = await supabase
+    const admin = createAdminClient()
+    const { error } = await admin
         .from('messages')
         .delete()
         .eq('id', messageId)
@@ -30,13 +33,8 @@ export async function deleteMessage(messageId: string) {
 export async function toggleBanUser(userId: string, isBanned: boolean) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    // NOTE: Native ban via auth.admin is NOT possible from the client side without service role key.
-    // This action will likely fail or only update the profile if RLS allows.
-    // For a true ban, this should be moved to a Supabase Edge Function.
-
-    // Update Public Profile (App Logic)
-    const supabase = createClient()
-    const { error } = await supabase
+    const admin = createAdminClient()
+    const { error } = await admin
         .from('profiles')
         .update({ is_banned: isBanned })
         .eq('id', userId)
@@ -49,8 +47,8 @@ export async function toggleBanUser(userId: string, isBanned: boolean) {
 export async function getUsers(query?: string) {
     if (!await checkAdmin()) return []
 
-    const supabase = createClient()
-    let dbQuery = supabase
+    const admin = createAdminClient()
+    let dbQuery = admin
         .from('profiles')
         .select('*')
         .order('id', { ascending: false })
@@ -65,8 +63,8 @@ export async function getUsers(query?: string) {
 
 export async function getFeedbacks() {
     if (!await checkAdmin()) return []
-    const supabase = createClient()
-    const { data } = await supabase
+    const admin = createAdminClient()
+    const { data } = await admin
         .from('feedbacks')
         .select('*, profiles(username)')
         .order('created_at', { ascending: false })
@@ -76,8 +74,8 @@ export async function getFeedbacks() {
 export async function clearAllMessages() {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    const supabase = createClient()
-    const { error } = await supabase
+    const admin = createAdminClient()
+    const { error } = await admin
         .from('messages')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000')
@@ -89,16 +87,19 @@ export async function clearAllMessages() {
 export async function deleteUser(userId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    // NOTE: Deleting auth user is NOT possible from the client side.
-    return { success: false, error: 'Delete user not supported on mobile. Use the web dashboard.' }
+    const admin = createAdminClient()
+    const { error } = await admin.auth.admin.deleteUser(userId)
+    
+    if (error) return { success: false, error: error.message }
+    return { success: true }
 }
 
 export async function deleteFeedback(feedbackId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
     try {
-        const supabase = createClient()
-        const { error } = await supabase
+        const admin = createAdminClient()
+        const { error } = await admin
             .from('feedbacks')
             .delete()
             .eq('id', feedbackId)
@@ -113,13 +114,13 @@ export async function deleteFeedback(feedbackId: string) {
 export async function updateSystemConfig(key: string, value: boolean | number | string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    const supabase = createClient()
+    const admin = createAdminClient()
 
     console.log(`[AdminConfig] Updating ${key} to:`, value, typeof value);
 
     const storeValue = key === 'message_rate_limit' ? Number(value) : value;
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
         .from('app_config')
         .upsert({ key, value: storeValue }, { onConflict: 'key' })
         .select()

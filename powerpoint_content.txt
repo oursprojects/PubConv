@@ -1,0 +1,154 @@
+--------------------------------------------------
+SLIDE 1
+--------------------------------------------------
+[TITLE]
+Introduction
+
+[BODY]
+• App Name: PubConv - A real-time global chat experience.
+• What it is: A lightweight, high-speed communication tool bridging web and mobile.
+• Who it is for: Student collectives, hobbyist groups, and communities wanting instant, hassle-free interaction.
+
+--------------------------------------------------
+SLIDE 2
+--------------------------------------------------
+[TITLE]
+Problem Statement
+
+[BODY]
+• Real Issue: Modern chat apps are bloated with unnecessary features, making them slow and chaotic.
+• Real Issue: Maintaining safety from spam in public chat rooms is technically difficult for small teams.
+• Who Experiences It: Community managers and users struggling with clunky app syncs when switching from desktop to mobile.
+
+--------------------------------------------------
+SLIDE 3
+--------------------------------------------------
+[TITLE]
+Key Features
+
+[BODY]
+• Real-Time Interactivity: Instant messaging, @username tagging, and emoji reactions.
+• Cross-Platform Delivery: Built natively for Web and seamlessly packaged for Android.
+• Powerful Admin Controls: Dynamic chat rate-limiting, message deletion, and system-wide maintenance toggles.
+• Integrated Community Tools: Built-in calendar events, user search, and customizable user profiles.
+
+--------------------------------------------------
+SLIDE 4
+--------------------------------------------------
+[TITLE]
+How It Works
+
+[BODY]
+• Step 1 (Entry): Users sign in securely and enter the central global chat room.
+• Step 2 (Connect): Users instantly drop into the conversation, seeing live online counts.
+• Step 3 (Engage): Users tag others via the smart @ menu or reply directly to older messages.
+• Step 4 (Moderate): Admins safely manage the flow by clearing spam or pausing chat in real-time.
+
+--------------------------------------------------
+SLIDE 5
+--------------------------------------------------
+[TITLE]
+Target Users & Market
+
+[BODY]
+• Student Organizations: Needing a central, lightweight campus announcement board.
+• Tech & Gaming Communities: Looking for a fast-paced, nostalgic chat room environment.
+• Virtual Event Organizers: Requiring a low-latency live discussion panel for specific events.
+
+--------------------------------------------------
+SLIDE 6
+--------------------------------------------------
+[TITLE]
+Unique Selling Point (USP)
+
+[BODY]
+• What makes it different: Real, enterprise-grade tools (like spam limits and bans) hidden behind a simple, nostalgic chat interface.
+• Why choose it: Zero platform friction. You get the exact same high-speed functionality on a web browser as you do on the native Android app.
+
+--------------------------------------------------
+SLIDE 7
+--------------------------------------------------
+[TITLE]
+Impact & Benefits
+
+[BODY]
+• How it improves lives: Makes large-scale community networking effortless by removing heavy onboarding barriers and platform lock-in.
+• Real-World uses: Campus emergency coordination networks, unified live stream companion-chats, or local community feedback boards.
+
+--------------------------------------------------
+SLIDE 8
+--------------------------------------------------
+[TITLE]
+Future Improvements
+
+[BODY]
+• New Features: Private 1-on-1 Direct Messaging and secure Multimedia (Image/Video) sharing.
+• New Features: AI-assisted moderation to automatically flag or block toxic messaging.
+• Scalability Plans: Deliver a native iOS App release for total mobile market coverage.
+• Expansion Plans: Mobile push notifications and Single Sign-On (SSO) via Google/GitHub.
+
+--------------------------------------------------
+SLIDE 9
+--------------------------------------------------
+[TITLE]
+App Pages: Authentication System
+
+[BODY]
+• Login / Register Pages: Secure JWT-based entry forms powered by Supabase.
+• Spam Prevention: Integrated Google reCAPTCHA during the sign-up process.
+• Access Control: A dedicated "Banned" page that securely blocks restricted users.
+
+--------------------------------------------------
+SLIDE 10
+--------------------------------------------------
+[TITLE]
+App Pages: Global Chat Interface
+
+[BODY]
+• Core Hub: The central page of the app providing instant real-time messaging.
+• Live Tracking: Displays the active online user count and server connection status.
+• Interactive UI: Users can reply to messages, @mention friends, and use Emoji reactions.
+
+--------------------------------------------------
+SLIDE 11
+--------------------------------------------------
+[TITLE]
+App Pages: Search & Calendar
+
+[BODY]
+• Search Page: A dedicated directory for users to find specific community members.
+• Calendar Page: An interactive timeline to keep the community aligned on important events.
+
+--------------------------------------------------
+SLIDE 12
+--------------------------------------------------
+[TITLE]
+App Pages: User Profile
+
+[BODY]
+• Profile Form: Users can update their username and bio information.
+• Avatar Editor: Custom InitialsAvatars and profile picture selections.
+• Security & Style: Change password interface and system-synced Dark/Light theme toggles.
+
+--------------------------------------------------
+SLIDE 13
+--------------------------------------------------
+[TITLE]
+App Pages: Admin Dashboard
+
+[BODY]
+• User Management: A secure area where admins can promote moderators or ban troublemakers.
+• System Controls: Admin switches to toggle "Maintenance Mode" across the whole app.
+• Traffic Control: Dynamic configuration of chat spam rate-limits and a "Clear All" database tool.
+
+--------------------------------------------------
+SLIDE 14
+--------------------------------------------------
+[TITLE]
+App Pages: System & Engagement
+
+[BODY]
+• Feedback Page: A dedicated ticket system where users can submit bug reports and feature requests.
+• Maintenance Page: A globally synced fallback screen active during server upgrades.
+• PWA Integration: Offline capacity indicators and dynamic native splash screens for Android.
+--------------------------------------------------
