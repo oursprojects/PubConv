@@ -18,10 +18,7 @@ export async function deleteMessage(messageId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
     const supabase = createClient()
-    const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', messageId)
+    const { error } = await supabase.rpc('admin_delete_message', { target_message_id: messageId })
 
     if (error) return { success: false, error: error.message }
     return { success: true }
@@ -30,19 +27,10 @@ export async function deleteMessage(messageId: string) {
 export async function toggleBanUser(userId: string, isBanned: boolean) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    // NOTE: Native ban via auth.admin is NOT possible from the client side without service role key.
-    // This action will likely fail or only update the profile if RLS allows.
-    // For a true ban, this should be moved to a Supabase Edge Function.
-
-    // Update Public Profile (App Logic)
     const supabase = createClient()
-    const { error } = await supabase
-        .from('profiles')
-        .update({ is_banned: isBanned })
-        .eq('id', userId)
+    const { error } = await supabase.rpc('admin_toggle_ban_user', { target_user_id: userId, ban_status: isBanned })
 
     if (error) return { success: false, error: error.message }
-
     return { success: true }
 }
 
@@ -77,10 +65,7 @@ export async function clearAllMessages() {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
     const supabase = createClient()
-    const { error } = await supabase
-        .from('messages')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000')
+    const { error } = await supabase.rpc('admin_clear_all_messages', {})
 
     if (error) return { success: false, error: error.message }
     return { success: true }
@@ -89,8 +74,7 @@ export async function clearAllMessages() {
 export async function deleteUser(userId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    // NOTE: Deleting auth user is NOT possible from the client side.
-    return { success: false, error: 'Delete user not supported on mobile. Use the web dashboard.' }
+    return { success: false, error: 'Delete auth user natively via Edge Functions or Web Dashboard.' }
 }
 
 export async function deleteFeedback(feedbackId: string) {
@@ -98,10 +82,7 @@ export async function deleteFeedback(feedbackId: string) {
 
     try {
         const supabase = createClient()
-        const { error } = await supabase
-            .from('feedbacks')
-            .delete()
-            .eq('id', feedbackId)
+        const { error } = await supabase.rpc('admin_delete_feedback', { target_feedback_id: feedbackId })
 
         if (error) return { success: false, error: error.message }
         return { success: true }
@@ -119,10 +100,11 @@ export async function updateSystemConfig(key: string, value: boolean | number | 
 
     const storeValue = key === 'message_rate_limit' ? Number(value) : value;
 
-    const { data, error } = await supabase
-        .from('app_config')
-        .upsert({ key, value: storeValue }, { onConflict: 'key' })
-        .select()
+    // Use RPC to bypass RLS securely
+    const { data, error } = await supabase.rpc('admin_update_app_config', {
+        config_key: key,
+        config_value: JSON.stringify(storeValue)
+    })
 
     if (error) {
         console.error(`[AdminConfig] Error:`, error.message);
