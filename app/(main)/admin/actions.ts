@@ -86,7 +86,14 @@ export async function clearAllMessages() {
 export async function deleteUser(userId: string) {
     if (!await checkAdmin()) return { success: false, error: 'Unauthorized' }
 
-    return { success: false, error: 'Delete auth user natively via Edge Functions or Web Dashboard.' }
+    const supabase = createClient()
+    const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId })
+
+    if (error) {
+        console.error("[DeleteUser] Error calling RPC:", error);
+        return { success: false, error: error.message }
+    }
+    return { success: true }
 }
 
 export async function deleteFeedback(feedbackId: string) {
